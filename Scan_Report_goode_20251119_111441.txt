@@ -1,0 +1,396 @@
+시스템 스캔 보고서 시작: 2025-11-19 11:14:45.468561
+보고서 파일명: Scan_Report_goode_20251119_111441.txt
+================================================================================
+CMD 기반 시스템 정보 수집 결과:
+================================================================================
+
+ 
+--- [PE-CMD 시스템 정보 수집] --- 
+ 
+--- [시스템 정보] --- 
+
+호스트 이름:             DESKTOP-MPGB8S7
+OS 이름:                 Microsoft Windows 11 Pro
+OS 버전:                 10.0.26200 N/A 빌드 26200
+OS 제조업체:             Microsoft Corporation
+OS 구성:                 독립 실행형 워크스테이션
+OS 빌드 종류:            Multiprocessor Free
+등록된 소유자:           goodevening0923@gmail.com
+등록된 조직:             N/A
+제품 ID:                 00330-80000-00000-AA546
+원래 설치 날짜:          2025-11-19, 오전 9:52:28
+시스템 부트 시간:        2025-11-19, 오전 10:27:57
+시스템 제조업체:         VMware, Inc.
+시스템 모델:             VMware7,1
+시스템 종류:             x64-based PC
+프로세서:                프로세서 2개 설치됨
+                         [01]: Intel64 Family 6 Model 186 Stepping 3 GenuineIntel ~2496Mhz
+                         [02]: Intel64 Family 6 Model 186 Stepping 3 GenuineIntel ~2496Mhz
+BIOS 버전:               VMware, Inc. VMW71.00V.16722896.B64.2008100651, 2020-08-10
+Windows 디렉터리:        C:\WINDOWS
+시스템 디렉터리:         C:\WINDOWS\system32
+부팅 장치:               \Device\HarddiskVolume1
+시스템 로캘:             ko;한국어
+입력 로캘:               ko;한국어
+표준 시간대:             (UTC+09:00) 서울
+총 실제 메모리:          4,095MB
+사용 가능한 실제 메모리: 1,049MB
+가상 메모리: 최대 크기:  5,503MB
+가상 메모리: 사용 가능:  2,230MB
+가상 메모리: 사용 중:    3,273MB
+페이지 파일 위치:        C:\pagefile.sys
+도메인:                  WORKGROUP
+로그온 서버:             \\DESKTOP-MPGB8S7
+핫픽스:                  핫픽스 6개 설치됨
+                         [01]: KB5066613
+                         [02]: KB5054156
+                         [03]: KB5070349
+                         [04]: KB5068861
+                         [05]: KB5064531
+                         [06]: KB5067035
+네트워크 카드:           NIC 1개 설치됨
+                         [01]: vmxnet3 Ethernet Adapter
+                               연결 이름: Ethernet0
+                               DHCP 사용: 예
+                               DHCP 서버: 192.168.88.254
+                               IP 주소
+                               [01]: 192.168.88.149
+                               [02]: fe80::1ef8:3315:b282:77aa
+가상화 기반 보안:        상태: 사용 안 함
+                         App Control for Business policy: 적용
+                         App Control for Business user mode policy: 감사
+                         보안 기능 사용:
+Hyper-V 요구 사항:       하이퍼바이저가 검색되었습니다. Hyper-V에 필요한 기능이 표시되지 않습니다.
+ 
+--- [현재 사용자 및 그룹 정보] --- 
+desktop-mpgb8s7\goode
+
+\\DESKTOP-MPGB8S7에 대한 사용자 계정
+
+-------------------------------------------------------------------------------
+Administrator            DefaultAccount           goode                    
+Guest                    WDAGUtilityAccount       
+명령을 잘 실행했습니다.
+
+ 
+--- [네트워크 정보] --- 
+
+Windows IP 구성
+
+   호스트 이름 . . . . . . . . : DESKTOP-MPGB8S7
+   주 DNS 접미사 . . . . . . . : 
+   노드 유형 . . . . . . . . . : 혼성
+   IP 라우팅 사용. . . . . . . : 아니요
+   WINS 프록시 사용. . . . . . : 아니요
+   DNS 접미사 검색 목록. . . . : localdomain
+
+이더넷 어댑터 Ethernet0:
+
+   연결별 DNS 접미사. . . . : localdomain
+   설명. . . . . . . . . . . . : vmxnet3 Ethernet Adapter
+   물리적 주소 . . . . . . . . : 00-0C-29-14-5C-76
+   DHCP 사용 . . . . . . . . . : 예
+   자동 구성 사용. . . . . . . : 예
+   링크-로컬 IPv6 주소 . . . . : fe80::1ef8:3315:b282:77aa%6(기본 설정) 
+   IPv4 주소 . . . . . . . . . : 192.168.88.149(기본 설정) 
+   서브넷 마스크 . . . . . . . : 255.255.255.0
+   임대 시작 날짜. . . . . . . : 2025년 11월 19일 수요일 오전 10:28:02
+   임대 만료 날짜. . . . . . . : 2025년 11월 19일 수요일 오전 11:37:27
+   기본 게이트웨이 . . . . . . : 192.168.88.2
+   DHCP 서버 . . . . . . . . . : 192.168.88.254
+   DHCPv6 IAID . . . . . . . . : 100666409
+   DHCPv6 클라이언트 DUID. . . : 00-01-00-01-30-AE-4E-0F-00-0C-29-14-5C-76
+   DNS 서버. . . . . . . . . . : 192.168.88.2
+   주 WINS 서버. . . . . . . . : 192.168.88.2
+   Tcpip를 통한 NetBIOS. . . . : 사용
+ 
+--- [활성 네트워크 연결 정보] --- 
+
+활성 연결
+
+  프로토콜  로컬 주소              외부 주소              상태            PID
+  TCP    0.0.0.0:135            0.0.0.0:0              LISTENING       320
+  TCP    0.0.0.0:445            0.0.0.0:0              LISTENING       4
+  TCP    0.0.0.0:5040           0.0.0.0:0              LISTENING       3264
+  TCP    0.0.0.0:7680           0.0.0.0:0              LISTENING       4404
+  TCP    0.0.0.0:49664          0.0.0.0:0              LISTENING       788
+  TCP    0.0.0.0:49665          0.0.0.0:0              LISTENING       628
+  TCP    0.0.0.0:49666          0.0.0.0:0              LISTENING       1656
+  TCP    0.0.0.0:49667          0.0.0.0:0              LISTENING       2016
+  TCP    0.0.0.0:49668          0.0.0.0:0              LISTENING       2516
+  TCP    0.0.0.0:49670          0.0.0.0:0              LISTENING       768
+  TCP    192.168.88.149:139     0.0.0.0:0              LISTENING       4
+  TCP    192.168.88.149:49424   150.171.28.11:443      TIME_WAIT       0
+  TCP    192.168.88.149:49425   52.110.15.72:443       TIME_WAIT       0
+  TCP    192.168.88.149:49595   150.171.27.11:443      TIME_WAIT       0
+  TCP    192.168.88.149:49596   23.67.53.171:443       ESTABLISHED     8152
+  TCP    192.168.88.149:49597   23.67.53.169:443       ESTABLISHED     5136
+  TCP    192.168.88.149:49598   23.201.35.163:443      ESTABLISHED     5136
+  TCP    192.168.88.149:50977   20.190.144.169:443     TIME_WAIT       0
+  TCP    192.168.88.149:50978   52.98.51.162:443       ESTABLISHED     4748
+  TCP    192.168.88.149:50979   52.98.51.162:443       ESTABLISHED     4748
+  TCP    192.168.88.149:51518   140.82.112.21:443      ESTABLISHED     7800
+  TCP    192.168.88.149:51519   146.75.114.172:80      ESTABLISHED     9080
+  TCP    192.168.88.149:51520   146.75.114.172:80      ESTABLISHED     9080
+  TCP    192.168.88.149:51523   52.111.233.3:443       ESTABLISHED     4748
+  TCP    192.168.88.149:51524   52.110.15.77:443       TIME_WAIT       0
+  TCP    192.168.88.149:51525   52.110.15.77:443       ESTABLISHED     4748
+  TCP    192.168.88.149:51526   52.110.15.77:443       ESTABLISHED     4748
+  TCP    192.168.88.149:51527   23.10.7.77:443         ESTABLISHED     4748
+  TCP    192.168.88.149:51528   13.107.246.74:443      ESTABLISHED     4748
+  TCP    192.168.88.149:51529   104.208.16.91:443      ESTABLISHED     4748
+  TCP    192.168.88.149:51530   52.111.246.2:443       ESTABLISHED     4748
+  TCP    192.168.88.149:51531   52.97.118.178:443      ESTABLISHED     4748
+  TCP    192.168.88.149:51532   52.111.239.45:443      ESTABLISHED     4748
+  TCP    192.168.88.149:56939   20.190.163.20:443      ESTABLISHED     4288
+  TCP    192.168.88.149:56940   20.190.163.20:443      ESTABLISHED     4288
+  TCP    192.168.88.149:58268   20.3.187.198:443       TIME_WAIT       0
+  TCP    192.168.88.149:58274   13.85.23.206:443       TIME_WAIT       0
+  TCP    192.168.88.149:58631   40.104.69.50:443       ESTABLISHED     8152
+  TCP    192.168.88.149:58633   52.97.118.210:443      ESTABLISHED     8152
+  TCP    192.168.88.149:58634   52.97.118.210:443      ESTABLISHED     8152
+  TCP    192.168.88.149:63351   4.213.25.240:443       ESTABLISHED     2868
+  TCP    192.168.88.149:63358   4.213.25.240:443       ESTABLISHED     2868
+  TCP    192.168.88.149:63919   140.82.112.25:443      ESTABLISHED     7800
+  TCP    192.168.88.149:63981   52.110.15.72:443       TIME_WAIT       0
+  TCP    192.168.88.149:64985   20.200.245.245:443     ESTABLISHED     7800
+  TCP    [::]:135               [::]:0                 LISTENING       320
+  TCP    [::]:445               [::]:0                 LISTENING       4
+  TCP    [::]:7680              [::]:0                 LISTENING       4404
+  TCP    [::]:49664             [::]:0                 LISTENING       788
+  TCP    [::]:49665             [::]:0                 LISTENING       628
+  TCP    [::]:49666             [::]:0                 LISTENING       1656
+  TCP    [::]:49667             [::]:0                 LISTENING       2016
+  TCP    [::]:49668             [::]:0                 LISTENING       2516
+  TCP    [::]:49670             [::]:0                 LISTENING       768
+  TCP    [::1]:42050            [::]:0                 LISTENING       10452
+  UDP    0.0.0.0:5050           *:*                                    3264
+  UDP    0.0.0.0:5353           *:*                                    7876
+  UDP    0.0.0.0:5353           *:*                                    1848
+  UDP    0.0.0.0:5353           *:*                                    7876
+  UDP    0.0.0.0:5355           *:*                                    1848
+  UDP    0.0.0.0:50244          23.67.53.168:443                       8180
+  UDP    0.0.0.0:50771          23.67.53.168:443                       8180
+  UDP    0.0.0.0:52483          *:*                                    1848
+  UDP    0.0.0.0:57161          *:*                                    1848
+  UDP    0.0.0.0:62649          121.254.136.99:443                     8180
+  UDP    0.0.0.0:63104          184.27.208.27:443                      8180
+  UDP    0.0.0.0:63589          121.254.136.122:443                    8180
+  UDP    0.0.0.0:63681          96.7.244.152:443                       8180
+  UDP    0.0.0.0:65137          *:*                                    1848
+  UDP    127.0.0.1:1900         *:*                                    4380
+  UDP    127.0.0.1:60449        *:*                                    4380
+  UDP    127.0.0.1:65371        127.0.0.1:65371                        2756
+  UDP    192.168.88.149:137     *:*                                    4
+  UDP    192.168.88.149:138     *:*                                    4
+  UDP    192.168.88.149:1900    *:*                                    4380
+  UDP    192.168.88.149:60448   *:*                                    4380
+  UDP    [::]:5353              *:*                                    7876
+  UDP    [::]:5353              *:*                                    1848
+  UDP    [::]:5355              *:*                                    1848
+  UDP    [::]:52483             *:*                                    1848
+  UDP    [::]:57161             *:*                                    1848
+  UDP    [::]:65137             *:*                                    1848
+  UDP    [::1]:1900             *:*                                    4380
+  UDP    [::1]:60447            *:*                                    4380
+  UDP    [fe80::1ef8:3315:b282:77aa%6]:1900  *:*                                    4380
+  UDP    [fe80::1ef8:3315:b282:77aa%6]:60446  *:*                                    4380
+ 
+--- [실행 중인 프로세스 목록 (CMD)] --- 
+
+이미지 이름                    PID 세션 이름              세션#  메모리 사용 상태            사용자 이름                                            CPU 시간 창 제목                                                                 
+========================= ======== ================ =========== ============ =============== ================================================== ============ ========================================================================
+System Idle Process              0 Services                   0          8 K Unknown         NT AUTHORITY\SYSTEM                                     0:42:08 N/A                                                                     
+System                           4 Services                   0        140 K Unknown         N/A                                                     0:03:11 N/A                                                                     
+Registry                        96 Services                   0    111,108 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:01 N/A                                                                     
+smss.exe                       388 Services                   0         60 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+csrss.exe                      556 Services                   0      3,672 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:09 N/A                                                                     
+wininit.exe                    628 Services                   0      1,612 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+services.exe                   768 Services                   0      7,200 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:07 N/A                                                                     
+lsass.exe                      788 Services                   0     19,528 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:10 N/A                                                                     
+fontdrvhost.exe                892 Services                   0      1,112 K Unknown         Font Driver Host\UMFD-0                                 0:00:00 N/A                                                                     
+svchost.exe                    968 Services                   0     24,848 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:09 N/A                                                                     
+svchost.exe                    320 Services                   0     15,112 K Unknown         NT AUTHORITY\NETWORK SERVICE                            0:00:33 N/A                                                                     
+svchost.exe                    500 Services                   0      4,164 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:01 N/A                                                                     
+svchost.exe                   1076 Services                   0     20,936 K Unknown         NT AUTHORITY\NETWORK SERVICE                            0:00:04 N/A                                                                     
+svchost.exe                   1188 Services                   0      5,804 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   1196 Services                   0      5,820 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   1212 Services                   0      2,752 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   1268 Services                   0      4,236 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   1376 Services                   0      4,708 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   1388 Services                   0     15,640 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   1400 Services                   0      2,520 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   1464 Services                   0     13,240 K Unknown         NT AUTHORITY\NETWORK SERVICE                            0:00:04 N/A                                                                     
+svchost.exe                   1536 Services                   0     18,060 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:03 N/A                                                                     
+svchost.exe                   1656 Services                   0     15,652 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:02 N/A                                                                     
+svchost.exe                   1720 Services                   0      5,296 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   1728 Services                   0      8,904 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:07 N/A                                                                     
+svchost.exe                   1744 Services                   0      1,752 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   1848 Services                   0      5,536 K Unknown         NT AUTHORITY\NETWORK SERVICE                            0:00:02 N/A                                                                     
+Memory Compression            1904 Services                   0    184,044 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:08 N/A                                                                     
+svchost.exe                   1944 Services                   0      6,088 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   2016 Services                   0     10,384 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:02 N/A                                                                     
+svchost.exe                   1144 Services                   0      1,772 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   1332 Services                   0      6,012 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:58 N/A                                                                     
+svchost.exe                   2116 Services                   0      4,304 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:01 N/A                                                                     
+svchost.exe                   2220 Services                   0      4,896 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   2260 Services                   0      4,612 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:03 N/A                                                                     
+svchost.exe                   2300 Services                   0      3,460 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   2364 Services                   0      6,408 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   2372 Services                   0      6,036 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   2440 Services                   0      4,076 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+spoolsv.exe                   2516 Services                   0     18,596 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:04 N/A                                                                     
+svchost.exe                   2580 Services                   0     15,668 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:02 N/A                                                                     
+svchost.exe                   2612 Services                   0      3,100 K Unknown         NT AUTHORITY\NETWORK SERVICE                            0:00:00 N/A                                                                     
+taskhostw.exe                 2668 Services                   0     52,324 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:07 N/A                                                                     
+svchost.exe                   2720 Services                   0     40,464 K Unknown         NT AUTHORITY\SYSTEM                                     0:01:09 N/A                                                                     
+svchost.exe                   2728 Services                   0     34,124 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:13 N/A                                                                     
+svchost.exe                   2740 Services                   0     21,116 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:02 N/A                                                                     
+svchost.exe                   2756 Services                   0      6,060 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   2832 Services                   0      4,384 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   2844 Services                   0      1,404 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+MsMpEng.exe                   2852 Services                   0    179,732 K Unknown         NT AUTHORITY\SYSTEM                                     0:02:31 N/A                                                                     
+svchost.exe                   2860 Services                   0     17,752 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:08 N/A                                                                     
+svchost.exe                   2868 Services                   0     14,040 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   2884 Services                   0      2,484 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   2996 Services                   0     10,160 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   3484 Services                   0     10,728 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:05 N/A                                                                     
+AggregatorHost.exe            3616 Services                   0      5,732 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   3928 Services                   0     28,732 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:04 N/A                                                                     
+MicrosoftEdgeUpdate.exe       3404 Services                   0      4,912 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   2268 Services                   0     15,440 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:09 N/A                                                                     
+svchost.exe                   3264 Services                   0     10,012 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   4232 Services                   0     11,216 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   4896 Services                   0      5,028 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   5624 Services                   0     25,304 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   6664 Services                   0      6,800 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+CloudExperienceHostBroker     3912 Services                   0      3,108 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   4656 Services                   0      3,792 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   4404 Services                   0     19,580 K Unknown         NT AUTHORITY\NETWORK SERVICE                            0:00:40 N/A                                                                     
+svchost.exe                   1000 Services                   0      6,376 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   4360 Services                   0      5,052 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   4820 Services                   0     11,704 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:13 N/A                                                                     
+svchost.exe                   6988 Services                   0     10,540 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   4020 Services                   0     11,676 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:01 N/A                                                                     
+svchost.exe                   4400 Services                   0      9,544 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   7828 Services                   0      2,652 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+csrss.exe                     7740 Console                    2      3,932 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:11 N/A                                                                     
+winlogon.exe                  7500 Console                    2      5,052 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+fontdrvhost.exe               7784 Console                    2      6,300 K Unknown         Font Driver Host\UMFD-2                                 0:00:00 N/A                                                                     
+dwm.exe                       7072 Console                    2    127,856 K Running         Window Manager\DWM-2                                    0:00:46 DWM Notification Window                                                 
+sihost.exe                    8000 Console                    2     26,256 K Running         DESKTOP-MPGB8S7\goode                                   0:00:10 N/A                                                                     
+svchost.exe                   8052 Console                    2     23,076 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:03 N/A                                                                     
+svchost.exe                   7140 Console                    2      6,600 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+svchost.exe                   6068 Console                    2     23,396 K Running         DESKTOP-MPGB8S7\goode                                   0:00:01 Windows Push Notifications Platform                                     
+explorer.exe                  8152 Console                    2    293,340 K Running         DESKTOP-MPGB8S7\goode                                   0:01:53 pe_test/VBA_TEST_final (1).zip at main · taehyun0923/pe_test           
+ShellHost.exe                 5304 Console                    2      8,188 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 Quick Settings                                                          
+Narrator.exe                  5796 Console                    2     84,316 K Running         DESKTOP-MPGB8S7\goode                                   0:00:37 N/A                                                                     
+CrossDeviceResume.exe         6728 Console                    2      8,028 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 CrossDeviceResumeWindow                                                 
+svchost.exe                   4496 Services                   0     24,052 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:05 N/A                                                                     
+dllhost.exe                   5820 Console                    2     13,184 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 OleMainThreadWndName                                                    
+NarratorQuickStart.exe        3860 Console                    2      1,508 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 내레이터                                                                
+svchost.exe                   2536 Console                    2      7,088 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+StartMenuExperienceHost.e     1344 Console                    2    102,644 K Running         DESKTOP-MPGB8S7\goode                                   0:00:09 시작 메뉴                                                               
+RuntimeBroker.exe             5740 Console                    2     20,500 K Running         DESKTOP-MPGB8S7\goode                                   0:00:04 N/A                                                                     
+svchost.exe                   4932 Console                    2      8,744 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+ctfmon.exe                    9452 Console                    2     26,852 K Running         DESKTOP-MPGB8S7\goode                                   0:00:02 N/A                                                                     
+TextInputHost.exe             9896 Console                    2     28,824 K Running         DESKTOP-MPGB8S7\goode                                   0:00:02 Windows 입력 환경                                                       
+SearchHost.exe               10124 Console                    2     60,172 K Running         DESKTOP-MPGB8S7\goode                                   0:00:04 검색                                                                    
+msedgewebview2.exe            3056 Console                    2     48,876 K Running         DESKTOP-MPGB8S7\goode                                   0:00:02 검색                                                                    
+msedgewebview2.exe            1692 Console                    2      3,816 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedgewebview2.exe            9556 Console                    2     24,800 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 OLEChannelWnd                                                           
+msedgewebview2.exe            9520 Console                    2     11,408 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedgewebview2.exe            8432 Console                    2     30,460 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:01 N/A                                                                     
+msedgewebview2.exe            7924 Console                    2      6,772 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+svchost.exe                   8516 Services                   0     11,704 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+taskhostw.exe                 8968 Console                    2      6,988 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 Task Host Window                                                        
+svchost.exe                   9820 Services                   0      3,308 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+msedge.exe                    7876 Console                    2    179,052 K Running         DESKTOP-MPGB8S7\goode                                   0:00:45 pe_test/VBA_TEST_final (1).zip at main · taehyun0923/pe_test - 프로필 1
+msedge.exe                    3168 Console                    2      3,212 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedge.exe                    7800 Console                    2     34,252 K Running         DESKTOP-MPGB8S7\goode                                   0:00:09 OleMainThreadWndName                                                    
+msedge.exe                    6544 Console                    2     36,168 K Running         DESKTOP-MPGB8S7\goode                                   0:00:14 N/A                                                                     
+msedge.exe                    4732 Console                    2      8,772 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+SecurityHealthSystray.exe    12244 Console                    2      6,672 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+SecurityHealthService.exe    12264 Services                   0     20,896 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:01 N/A                                                                     
+svchost.exe                   4380 Services                   0      5,952 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                  11916 Console                    2     24,964 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedge.exe                    9792 Console                    2     13,932 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 OleMainThreadWndName                                                    
+RuntimeBroker.exe             1452 Console                    2     13,948 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedge.exe                    6140 Console                    2     11,044 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+UserOOBEBroker.exe            4980 Console                    2      8,344 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+dllhost.exe                   8212 Console                    2     12,680 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 OleMainThreadWndName                                                    
+ShellExperienceHost.exe       9424 Console                    2     61,004 K Running         DESKTOP-MPGB8S7\goode                                   0:00:01 Windows 셸 환경 호스트                                                  
+RuntimeBroker.exe            10344 Console                    2     25,880 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 OLEChannelWnd                                                           
+msedge.exe                    9584 Console                    2     10,888 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+OfficeClickToRun.exe          1308 Services                   0     63,260 K Unknown         NT AUTHORITY\SYSTEM                                     0:01:49 N/A                                                                     
+AppActions.exe                6656 Console                    2     27,004 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+OneDrive.Sync.Service.exe    10452 Console                    2     41,612 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 Microsoft OneDrive Sync Service                                         
+svchost.exe                  10392 Services                   0      6,136 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+AppVShNotify.exe               368 Console                    2     11,056 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedge.exe                    2352 Console                    2    101,692 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:10 N/A                                                                     
+msedge.exe                    8768 Console                    2     24,472 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+SearchIndexer.exe             8100 Services                   0     29,608 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:03 N/A                                                                     
+dllhost.exe                   8412 Console                    2     11,660 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 OleMainThreadWndName                                                    
+ApplicationFrameHost.exe      3832 Console                    2     51,344 K Running         DESKTOP-MPGB8S7\goode                                   0:00:01 설정                                                                    
+Widgets.exe                   5136 Console                    2     69,520 K Running         DESKTOP-MPGB8S7\goode                                   0:00:01 N/A                                                                     
+svchost.exe                   6640 Services                   0      8,452 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   7696 Console                    2     15,616 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+svchost.exe                   3048 Services                   0     15,604 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                  11060 Services                   0      9,968 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                   7620 Console                    2     14,224 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+WidgetService.exe            10816 Console                    2     26,792 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedgewebview2.exe            6300 Console                    2     74,676 K Running         DESKTOP-MPGB8S7\goode                                   0:00:01 N/A                                                                     
+msedgewebview2.exe           10088 Console                    2      9,140 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedgewebview2.exe            8180 Console                    2     22,740 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 OleMainThreadWndName                                                    
+msedgewebview2.exe             812 Console                    2     20,548 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedgewebview2.exe           10648 Console                    2      7,776 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+msedgewebview2.exe            7028 Console                    2    160,688 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:03 N/A                                                                     
+splwow64.exe                  5708 Console                    2     18,676 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+SystemSettings.exe            2124 Console                    2     12,400 K Running         DESKTOP-MPGB8S7\goode                                   0:00:03 설정                                                                    
+svchost.exe                   4304 Services                   0     49,892 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:02 N/A                                                                     
+svchost.exe                   8068 Services                   0      9,628 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   9080 Services                   0     27,784 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+svchost.exe                   6568 Services                   0     14,876 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+WmiPrvSE.exe                 10272 Services                   0     21,892 K Unknown         NT AUTHORITY\NETWORK SERVICE                            0:00:00 N/A                                                                     
+TrustedInstaller.exe         13052 Services                   0      9,492 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+TiWorker.exe                 12980 Services                   0     18,888 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:01 N/A                                                                     
+svchost.exe                   6152 Services                   0     10,032 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+svchost.exe                    264 Services                   0     10,960 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+smartscreen.exe               9076 Console                    2     12,796 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+svchost.exe                   4288 Services                   0     33,740 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+SearchProtocolHost.exe        6512 Services                   0     24,304 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+EXCEL.EXE                     4748 Console                    2    202,900 K Running         DESKTOP-MPGB8S7\goode                                   0:00:02 VBA_TEST - Excel                                                        
+downloaded_0.exe             11128 Console                    2      8,060 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 PyInstaller Onefile Hidden Window                                       
+downloaded_0.exe             11408 Console                    2     19,160 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+SearchFilterHost.exe          4644 Services                   0     12,224 K Unknown         NT AUTHORITY\SYSTEM                                     0:00:00 N/A                                                                     
+cmd.exe                       5576 Console                    2      5,052 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+conhost.exe                   9344 Console                    2      6,844 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+FileCoAuth.exe                3816 Console                    2     17,296 K Running         DESKTOP-MPGB8S7\goode                                   0:00:00 OleMainThreadWndName                                                    
+WmiPrvSE.exe                  5056 Services                   0     11,604 K Unknown         NT AUTHORITY\LOCAL SERVICE                              0:00:00 N/A                                                                     
+tasklist.exe                  2736 Console                    2     11,292 K Unknown         DESKTOP-MPGB8S7\goode                                   0:00:00 N/A                                                                     
+
+
+================================================================================
+PowerShell 스크립트 로그 통합 시작: 2025-11-19 11:14:45.468561
+================================================================================
+
+
+--- [PowerShell Log: System_Info Audit] ---
+
+
+--- [PowerShell Log: User_Process_Info Audit] ---
+
+
+--- [PowerShell Log: Firewall_Audit Audit] ---
+
+
+--- [PowerShell Log: Event_Log_Audit Audit] ---
+
+
+--- [PowerShell Log: Activity_Log_Mock Audit] ---
+
+
+
+================================================================================
+최종 보고서 작성 완료: 2025-11-19 11:14:52.907215
+================================================================================

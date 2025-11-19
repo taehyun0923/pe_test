@@ -1,0 +1,88 @@
+import ssl
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import parse_qs, urlparse
+import datetime
+
+# =========================================================================
+# HTTPS 로그 리스너 (포트 443)
+# - 사용자 지정 인증서와 키가 필요합니다.
+# - Kali Linux에서 'sudo'로 실행해야 합니다.
+# =========================================================================
+
+# ★★★ 중요 설정: 인증서 및 키 파일 경로 ★★★
+# Kali에서 자체 서명 인증서와 키를 생성해야 합니다. (예: openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes)
+CERTFILE = "server.crt" 
+KEYFILE = "server.key"
+HOST = "0.0.0.0" # 모든 인터페이스에서 수신
+PORT = 443       # HTTPS 포트
+
+class HTTPPostHandler(BaseHTTPRequestHandler):
+    """
+    들어오는 HTTP POST 요청을 처리하고 데이터를 저장하는 핸들러
+    """
+
+    def _set_headers(self, status_code=200):
+        """클라이언트에게 응답 헤더를 설정합니다."""
+        self.send_response(status_code)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+
+    def do_POST(self):
+        """POST 요청을 처리합니다 (로그 데이터 수신)."""
+        content_length = int(self.headers['Content-Length']) # 요청 본문의 길이
+        post_data = self.rfile.read(content_length)          # 요청 본문 읽기
+        
+        try:
+            # URL 인코딩된 데이터 파싱
+            parsed_data = parse_qs(post_data.decode('ascii', errors='ignore'))
+            
+            # 파싱된 데이터에서 파일명과 내용을 추출 (리스트 형태로 반환되므로 첫 번째 요소 사용)
+            filename = parsed_data.get('filename', ['received_log.txt'])[0]
+            log_content_raw = parsed_data.get('content', [''])[0]
+            
+            # 파일명에 타임스탬프 추가
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            save_filename = f"received_{timestamp}_{filename}"
+            
+            # 디스크에 로그 저장
+            with open(save_filename, 'w', encoding='utf-8') as f:
+                f.write(log_content_raw)
+            
+            print(f"[{timestamp}] SUCCESS: Log received and saved to {save_filename}")
+            
+            self._set_headers(200)
+            self.wfile.write(b"Log received successfully.")
+
+        except Exception as e:
+            print(f"[{timestamp}] ERROR: Failed to process POST request. Error: {e}")
+            self._set_headers(500)
+            self.wfile.write(f"Server error: {e}".encode())
+
+def run_server():
+    """HTTPS 서버를 시작합니다."""
+    try:
+        server_address = (HOST, PORT)
+        httpd = HTTPServer(server_address, HTTPPostHandler)
+        
+        # SSL Context 생성 및 인증서/키 로드
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(certfile=CERTFILE, keyfile=KEYFILE)
+        
+        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+        
+        print(f"*** Kali HTTPS Listener started on https://{HOST}:{PORT} ***")
+        print(f"*** Requires {CERTFILE} and {KEYFILE} in the current directory. ***")
+        
+        httpd.serve_forever()
+
+    except FileNotFoundError:
+        print(f"\n[CRITICAL ERROR] Certificate or Key file not found!")
+        print(f"Please generate {CERTFILE} and {KEYFILE} using OpenSSL.")
+        print(f"Command Example: openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes")
+    except PermissionError:
+        print(f"\n[CRITICAL ERROR] Permission denied. Please run with 'sudo' (e.g., sudo python3 {__file__}) as port 443 requires root privileges.")
+    except Exception as e:
+        print(f"\n[SERVER ERROR] An unexpected error occurred: {e}")
+
+if __name__ == "__main__":
+    run_server()

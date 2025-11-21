@@ -1,0 +1,59 @@
+# ===============================================
+# Snort 악성메일 탐지 룰
+# /usr/local/etc/snort/rules/local.rules
+# ===============================================
+
+# 1. Swaks X-Mailer 헤더 탐지
+alert tcp any any -> any 25 (msg:"[MALMAIL] Swaks mail tool detected - X-Mailer"; flow:to_server,established; content:"X-Mailer|3a 20|swaks"; nocase; classtype:suspicious-login; sid:1000001; rev:1;)
+
+# 2. Swaks User-Agent 탐지
+alert tcp any any -> any 25 (msg:"[MALMAIL] Swaks tool detected - User-Agent"; flow:to_server,established; content:"User-Agent|3a 20|Swaks"; nocase; classtype:suspicious-login; sid:1000002; rev:1;)
+
+# 3. 매크로 파일 첨부 탐지 (.xlsm)
+alert tcp any any -> any 25 (msg:"[MALMAIL] Macro-enabled Excel file attachment"; flow:to_server,established; content:"Content-Type|3a 20|application/"; content:"name=|22|"; distance:0; content:".xlsm|22|"; distance:0; within:100; nocase; classtype:suspicious-filename-detect; sid:1000003; rev:1;)
+
+# 4. VBA 매크로 자동실행 함수 (Auto_Open)
+alert tcp any any -> any 25 (msg:"[MALMAIL] VBA Auto_Open macro detected"; flow:to_server,established; content:"Auto_Open"; nocase; classtype:trojan-activity; sid:1000004; rev:1;)
+
+# 5. VBA Workbook_Open 탐지
+alert tcp any any -> any 25 (msg:"[MALMAIL] VBA Workbook_Open macro detected"; flow:to_server,established; content:"Workbook_Open"; nocase; classtype:trojan-activity; sid:1000005; rev:1;)
+
+# 6. PowerShell ExecutionPolicy Bypass
+alert tcp any any -> any 25 (msg:"[MALMAIL] PowerShell ExecutionPolicy Bypass in email"; flow:to_server,established; content:"powershell"; nocase; content:"ExecutionPolicy"; distance:0; within:100; content:"Bypass"; distance:0; within:50; nocase; classtype:trojan-activity; sid:1000006; rev:1;)
+
+# 7. UAC 비활성화 시도
+alert tcp any any -> any 25 (msg:"[MALMAIL] UAC disable attempt in email"; flow:to_server,established; content:"EnableLUA"; nocase; content:"REG_DWORD"; distance:0; within:100; content:"/d 0"; distance:0; within:50; classtype:trojan-activity; sid:1000007; rev:1;)
+
+# 8. GitHub EXE 다운로드 링크
+alert tcp any any -> any 25 (msg:"[MALMAIL] GitHub EXE download link in email"; flow:to_server,established; content:"github.com"; nocase; content:".exe"; distance:0; within:200; nocase; classtype:trojan-activity; sid:1000008; rev:1;)
+
+# 9. WScript.Shell 객체 생성
+alert tcp any any -> any 25 (msg:"[MALMAIL] WScript.Shell object creation"; flow:to_server,established; content:"CreateObject"; nocase; content:"WScript.Shell"; distance:0; within:100; nocase; classtype:trojan-activity; sid:1000009; rev:1;)
+
+# 10. Shell.Application 권한 상승
+alert tcp any any -> any 25 (msg:"[MALMAIL] Shell.Application privilege escalation"; flow:to_server,established; content:"Shell.Application"; nocase; content:"runas"; distance:0; within:200; nocase; classtype:trojan-activity; sid:1000010; rev:1;)
+
+# 11. Invoke-WebRequest 파일 다운로드
+alert tcp any any -> any 25 (msg:"[MALMAIL] Invoke-WebRequest download command"; flow:to_server,established; content:"Invoke-WebRequest"; nocase; content:"-OutFile"; distance:0; within:200; nocase; classtype:trojan-activity; sid:1000011; rev:1;)
+
+# 12. Base64로 인코딩된 PowerShell 명령
+alert tcp any any -> any 25 (msg:"[MALMAIL] Base64 encoded PowerShell command"; flow:to_server,established; content:"powershell"; nocase; content:"-EncodedCommand"; distance:0; within:100; nocase; classtype:trojan-activity; sid:1000012; rev:1;)
+
+# 13. cmd.exe 실행
+alert tcp any any -> any 25 (msg:"[MALMAIL] cmd.exe execution in email"; flow:to_server,established; content:"cmd.exe"; nocase; content:"/c"; distance:0; within:50; classtype:trojan-activity; sid:1000013; rev:1;)
+
+# 14. 레지스트리 수정 (reg add)
+alert tcp any any -> any 25 (msg:"[MALMAIL] Registry modification command"; flow:to_server,established; content:"reg add"; nocase; content:"HKEY_"; distance:0; within:100; nocase; classtype:trojan-activity; sid:1000014; rev:1;)
+
+# 15. TEMP 폴더에서 EXE 실행
+alert tcp any any -> any 25 (msg:"[MALMAIL] EXE execution from TEMP folder"; flow:to_server,established; content:"TEMP"; nocase; content:".exe"; distance:0; within:100; nocase; classtype:trojan-activity; sid:1000015; rev:1;)
+
+# ===============================================
+# SMTP 포트 확장 (587, 465도 감시)
+# ===============================================
+
+# SMTP Submission 포트 (587)
+alert tcp any any -> any 587 (msg:"[MALMAIL] Swaks on SMTP Submission port"; flow:to_server,established; content:"X-Mailer|3a 20|swaks"; nocase; classtype:suspicious-login; sid:1000016; rev:1;)
+
+# SMTPS 포트 (465)
+alert tcp any any -> any 465 (msg:"[MALMAIL] Swaks on SMTPS port"; flow:to_server,established; content:"X-Mailer|3a 20|swaks"; nocase; classtype:suspicious-login; sid:1000017; rev:1;)

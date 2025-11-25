@@ -7,8 +7,7 @@ import sys
 import re
 
 # =========================================================================
-# Kali HTTPS 로그 리스너 - Downloads 폴더 저장 버전
-# (FILENAME 특수 문자 오류 및 데이터 파싱 로직 강화)
+# Kali HTTPS 로그 리스너 (단일 대용량 파일 수신에 최적화)
 # =========================================================================
 
 HOST = "0.0.0.0"
@@ -17,12 +16,10 @@ PORT = 443
 # 저장 경로 설정: ~/Downloads/received_logs
 try:
     USER_HOME = os.path.expanduser("~")
-    # 예: /home/kali/Downloads/received_logs
     LOG_DIR = os.path.join(USER_HOME, "Downloads", "received_logs")
 except:
-    LOG_DIR = "received_logs" # 실패 시 현재 경로 사용
+    LOG_DIR = "received_logs" 
 
-# 폴더 생성
 if not os.path.exists(LOG_DIR):
     try:
         os.makedirs(LOG_DIR, exist_ok=True)
@@ -50,17 +47,15 @@ class HTTPPostHandler(BaseHTTPRequestHandler):
             # 데이터 파싱
             parsed_data = parse_qs(post_data.decode('utf-8', errors='ignore'), keep_blank_values=True)
             
-            # 데이터 추출 (클라이언트 pe.py의 필드명과 일치)
+            # 데이터 추출 (클라이언트가 보낸 filename과 content 필드)
             filename = parsed_data.get('filename', ['unknown.log'])[0]
-            system_log_content = parsed_data.get('system_log', [''])[0]
-            fake_payload_content = parsed_data.get('fake_payload', [''])[0]
+            file_content = parsed_data.get('content', [''])[0] # 시스템 로그 + 대용량 파일 내용
             
-            # 파일명 안전화 강화: 슬래시, 콜론 및 기타 안전하지 않은 문자 제거
+            # 파일명 안전화 강화: 모든 특수 문자를 제거하여 경로 오류 방지
             safe_filename = filename.replace('/', '_').replace('\\', '_').replace(':', '_')
-            # 정규식 사용하여 영숫자, 점, 대시, 밑줄 외 문자 모두 제거
             safe_filename = re.sub(r'[^\w\.\-\_]', '', safe_filename) 
             
-            # 최종 파일 저장 경로 구성 (파일명에 .log 확장자를 붙여 파일로 저장)
+            # 최종 파일 저장 경로 구성 (단일 파일로 저장)
             save_path = os.path.join(LOG_DIR, f"RECV_{timestamp}_{safe_filename}.log")
             
             # 파일 저장
@@ -68,11 +63,9 @@ class HTTPPostHandler(BaseHTTPRequestHandler):
                 f.write(f"--- SERVER RECEIPT INFO ---\n")
                 f.write(f"Time: {timestamp}\n")
                 f.write(f"Client IP: {self.client_address[0]}\n")
-                f.write(f"Total Size (Header): {content_length} bytes\n")
-                f.write(f"--- CLIENT PAYLOAD: SYSTEM LOG ({len(system_log_content)} bytes) ---\n")
-                f.write(system_log_content)
-                f.write(f"\n\n--- CLIENT PAYLOAD: FAKE DATA ({len(fake_payload_content)} bytes) ---\n")
-                f.write(fake_payload_content)
+                f.write(f"Total Size: {content_length} bytes\n")
+                f.write(f"--- BEGIN COMBINED CLIENT DATA ---\n")
+                f.write(file_content)
             
             # 결과 출력
             print(f"[{timestamp}] SAVE OK: {safe_filename} | Size: {content_length/1024/1024:.2f} MB")
@@ -86,12 +79,12 @@ class HTTPPostHandler(BaseHTTPRequestHandler):
             self.wfile.write(f"Server Error: {e}".encode())
 
     def log_message(self, format, *args):
-        return # 기본 로그 출력 끄기 (깔끔하게 보려고)
+        return 
 
 def run_server():
     server_addr = (HOST, PORT)
     
-    # SSL 설정
+    # SSL 설정 (server.pem 및 server.key 필요)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     cert_path = "server.pem"
     key_path = "server.key"

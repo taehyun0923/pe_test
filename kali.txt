@@ -1,21 +1,32 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs
 import datetime
+import ssl
 import os
 import sys
 
 # =========================================================================
-# HTTP 로그 리스너 (포트 80)
-# - SSL/TLS 암호화 없이 평문 HTTP로 데이터를 수신합니다.
-# - Kali Linux 등 리눅스 환경에서 'sudo'로 실행해야 합니다. (80 포트는 특권 포트)
+# Kali HTTPS 로그 리스너 (포트 443) - 최종 버전
+#
+# ★★★ 필수 확인 사항 ★★★
+# 1. 실행 명령어: 반드시 'sudo python3 kali_https_listener.py' 형태로 'sudo'를 붙여 실행해야 합니다.
+# 2. 인증서 파일: 'server.pem' 및 'server.key' 파일이 이 스크립트와 같은 디렉토리에 있어야 합니다.
+#    (생성 명령어: openssl req -new -x509 -keyout server.key -out server.pem -days 365 -nodes)
+# 3. Python 버전: Python 3 환경에서 실행해야 합니다.
 # =========================================================================
 
-HOST = "0.0.0.0"  # 모든 인터페이스에서 수신
-PORT = 80         # HTTP 포트
+HOST = "0.0.0.0" # 모든 인터페이스에서 수신
+PORT = 443       # HTTPS 포트
+
+# 로그 저장 디렉토리 설정
+LOG_DIR = "received_logs"
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+    print(f"[INFO] 로그 저장 디렉토리 생성됨: {LOG_DIR}")
 
 class HTTPPostHandler(BaseHTTPRequestHandler):
     """
-    들어오는 HTTP POST 요청을 처리하고 데이터를 저장하는 핸들러
+    들어오는 HTTPS POST 요청을 처리하고 데이터를 저장하는 핸들러
     """
     
     def _set_headers(self, status_code=200):
@@ -23,44 +34,49 @@ class HTTPPostHandler(BaseHTTPRequestHandler):
         self.send_response(status_code)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
-
+    
     def do_POST(self):
         """POST 요청을 처리합니다 (로그 데이터 수신)."""
+        content_length = int(self.headers.get('Content-Length', 0))
         
-        # 요청 본문의 길이
-        try:
-            content_length = int(self.headers['Content-Length'])
-        except (TypeError, ValueError):
-            content_length = 0
+        if content_length == 0:
+            self._set_headers(400)
+            self.wfile.write(b"Error: Content-Length is 0.")
+            return
 
-        # 요청 본문 읽기
         post_data = self.rfile.read(content_length)
+        
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-            
+        
         try:
             # URL 인코딩된 데이터 파싱
-            # 클라이언트가 보낸 데이터가 application/x-www-form-urlencoded 형식이라고 가정합니다.
-            parsed_data = parse_qs(post_data.decode('utf-8', errors='ignore'))
+            parsed_data = parse_qs(post_data.decode('utf-8', errors='ignore'), keep_blank_values=True)
             
-            # 파싱된 데이터에서 파일명과 내용을 추출 (리스트 형태로 반환되므로 첫 번째 요소 사용)
+            # 파싱된 데이터 추출
             filename = parsed_data.get('filename', ['received_log.txt'])[0]
             log_content_raw = parsed_data.get('content', [''])[0]
-            dummy_data_len = len(parsed_data.get('dummy_data', [''])[0])
             
-            # 파일명에 타임스탬프 추가
-            save_filename = f"received_{timestamp}_{filename}"
+            # 클라이언트 스크립트에서 전송되는 추가 메타데이터 처리 (로그 파일에 포함)
+            dummy_data_size = len(parsed_data.get('dummy_data', [''])[0])
+            request_id = parsed_data.get('request_id', ['N/A'])[0]
+            thread_id = parsed_data.get('thread_id', ['N/A'])[0]
             
-            # 디스크에 로그 저장 (여기서는 'content' 필드의 내용만 저장)
+            # 파일명 설정 (디렉토리 경로를 포함)
+            save_filename = os.path.join(LOG_DIR, f"received_{timestamp}_TID{thread_id}_RID{request_id}_{filename.replace('/', '_').replace(':', '_')}")
+            
+            # 디스크에 로그 저장
             with open(save_filename, 'w', encoding='utf-8') as f:
+                f.write(f"--- POST Header Info ---\n")
+                f.write(f"Timestamp: {timestamp}\n")
+                f.write(f"Source IP: {self.client_address[0]}\n")
+                f.write(f"Total Body Size: {content_length} bytes\n")
+                f.write(f"Dummy Payload Size: {dummy_data_size} bytes\n")
+                f.write(f"Log Content Size: {len(log_content_raw)} bytes\n")
+                f.write(f"--- System Log Content ---\n")
                 f.write(log_content_raw)
             
-            print(f"[{timestamp}] SUCCESS: Log received and saved.")
-            print(f"[{timestamp}] Source IP: {self.client_address[0]}")
-            print(f"[{timestamp}] URI: {self.path}")
-            print(f"[{timestamp}] Filename: {save_filename}")
-            print(f"[{timestamp}] Log Size: {len(log_content_raw)} bytes")
-            print(f"[{timestamp}] Dummy Payload Size: {dummy_data_len} bytes")
-            print("-" * 30)
+            # 수신 성공 메시지 출력
+            print(f"[{timestamp}] SUCCESS: Log received | TID:{thread_id} | ReqID:{request_id} | IP:{self.client_address[0]} | Size:{content_length/1024:.2f} KB")
             
             self._set_headers(200)
             self.wfile.write(b"Log received successfully.")
@@ -69,51 +85,65 @@ class HTTPPostHandler(BaseHTTPRequestHandler):
             print(f"[{timestamp}] ERROR: Failed to process POST request. Error: {e}")
             self._set_headers(500)
             self.wfile.write(f"Server error: {e}".encode())
-
+    
     def log_message(self, format, *args):
         """HTTP 서버의 기본 로그 메시지를 커스터마이즈합니다."""
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        # 기본 로그를 출력하지 않고 커스터마이징된 로그만 출력하거나, 필요시 여기에 추가합니다.
-        # super().log_message(format, *args) # 기본 로그 메시지 출력 비활성화
-        pass
+        # 200, 500 응답에 대한 상세 로그는 do_POST에서 출력하므로 기본 로그는 억제
+        if args[1] not in ('200', '500'):
+             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+             print(f"[{timestamp}] {self.client_address[0]} - {format % args}")
 
 def run_server():
-    """HTTP 서버를 시작합니다."""
+    """HTTPS 서버를 시작합니다."""
+    server_address = (HOST, PORT)
+    
     try:
-        server_address = (HOST, PORT)
+        # 1. SSL Context 생성 (TLS 1.2 이상 사용 권장)
+        # ssl.PROTOCOL_TLS_SERVER는 Python 3.6+에서만 사용 가능합니다.
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER) 
+        
+        # 2. 인증서 파일 로드
+        cert_file = os.path.join(os.getcwd(), "server.pem")
+        key_file = os.path.join(os.getcwd(), "server.key")
+        
+        if not os.path.exists(cert_file) or not os.path.exists(key_file):
+            print("\n[CRITICAL ERROR] SSL/TLS 인증서 파일(server.pem 또는 server.key)을 찾을 수 없습니다.")
+            print(f"현재 디렉토리: {os.getcwd()}")
+            print("인증서 생성 명령어를 실행하여 파일을 생성했는지 확인하십시오.")
+            return
+
+        context.load_cert_chain(certfile=cert_file, keyfile=key_file)
+        
+        # 3. HTTPS 서버 인스턴스 생성
         httpd = HTTPServer(server_address, HTTPPostHandler)
         
+        # 4. 서버 소켓을 SSL Context로 래핑하여 HTTPS 적용
+        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+
         print("="*70)
-        print(f"*** Kali HTTP Listener started on http://{HOST}:{PORT} ***")
-        print(f"*** Listening for incoming HTTP POST requests ***")
+        print(f"*** Kali HTTPS Listener started on https://{HOST}:{PORT} ***")
+        print(f"*** Listening for POST requests ***")
         print(f"*** Press Ctrl+C to stop the server ***")
         print("="*70)
         
         httpd.serve_forever()
         
     except PermissionError:
-        print(f"\n[CRITICAL ERROR] Permission denied.")
-        print(f"Port {PORT} requires root privileges (or administrator access).")
-        print(f"Please run with 'sudo' on Linux: sudo python3 {os.path.basename(__file__)}")
-        sys.exit(1)
+        print(f"\n[CRITICAL ERROR] 권한 거부(Permission denied).")
+        print(f"포트 {PORT}는 루트 권한을 필요로 합니다. 'sudo python3 {sys.argv[0]}'로 실행해 주십시오.")
         
     except OSError as e:
-        if e.errno == 98:
-            # Address already in use
-            print(f"\n[CRITICAL ERROR] Port {PORT} is already in use.")
-            print(f"Please check if another service is using port {PORT}.")
-            print(f"You can check with: sudo netstat -tulpn | grep :{PORT}")
-            sys.exit(1)
+        if e.errno == 98: # Address already in use
+            print(f"\n[CRITICAL ERROR] 포트 {PORT}가 이미 사용 중입니다.")
+            print(f"다른 서비스가 포트 {PORT}를 사용하고 있는지 확인하십시오.")
         else:
-            print(f"\n[OS ERROR] {e}")
-            sys.exit(1)
+            print(f"\n[OS ERROR] 예상치 못한 OS 오류가 발생했습니다: {e}")
             
     except KeyboardInterrupt:
-        print("\n\n[INFO] Server stopped by user (Ctrl+C)")
+        print("\n\n[INFO] 사용자 요청으로 서버 중지됨 (Ctrl+C)")
         
     except Exception as e:
-        print(f"\n[SERVER ERROR] An unexpected error occurred: {e}")
-        sys.exit(1)
+        print(f"\n[SERVER ERROR] 서버 실행 중 예상치 못한 오류가 발생했습니다: {e}")
 
 if __name__ == "__main__":
     run_server()

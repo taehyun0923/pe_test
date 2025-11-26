@@ -8,7 +8,7 @@ from datetime import datetime
 
 # =========================================================================
 # Python Standard Library Only HTTPS Server - 443 포트
-# Windows PE 파일로부터 15MB 이상의 대용량 POST 요청을 수신합니다.
+# 대용량 POST 요청을 수신하며, SSLContext를 사용하여 SSL 오류를 해결합니다.
 # =========================================================================
 
 # 파일 저장 경로 설정
@@ -78,15 +78,14 @@ class LargeDataHandler(BaseHTTPRequestHandler):
         if content_length > 0:
             try:
                 # 3. 대용량 데이터 읽기
+                # BaseHTTPRequestHandler의 rfile.read는 Content-Length만큼 읽어옵니다.
                 post_data_raw = self.rfile.read(content_length)
                 
                 # 4. form-urlencoded 데이터 파싱
-                # post_data_raw를 디코딩하고 parse_qs로 딕셔너리 형태로 파싱
                 post_data_str = post_data_raw.decode('utf-8')
                 parsed_data = parse_qs(post_data_str)
                 
-                # parse_qs의 결과는 리스트 형태이므로 첫 번째 요소를 추출
-                # 또한, unquote_plus를 사용하여 URL 인코딩을 완전히 해제합니다.
+                # parse_qs의 결과는 리스트 형태이므로 첫 번째 요소를 추출하고 URL 인코딩 해제
                 filename = unquote_plus(parsed_data.get('filename', ['received_log_default.txt'])[0])
                 content = unquote_plus(parsed_data.get('content', [''])[0])
                 
@@ -141,13 +140,12 @@ def run_server():
         # HTTP 서버 인스턴스 생성
         httpd = HTTPServer(SERVER_ADDRESS, LargeDataHandler)
         
-        # SSL Context 적용
-        httpd.socket = ssl.wrap_socket(
-            httpd.socket,
-            keyfile=key_file,
-            certfile=cert_file,
-            server_side=True
-        )
+        # ★★★ 오류 수정 부분: SSL Context 생성 및 적용 ★★★
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        context.load_cert_chain(certfile=cert_file, keyfile=key_file)
+        
+        # Context 객체의 wrap_socket 메서드를 사용하여 소켓 래핑
+        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
         
         host, port = SERVER_ADDRESS
         print(f"★ HTTPS 서버 시작 중 (Host: {host}, Port: {port})...")

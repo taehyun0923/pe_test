@@ -2,27 +2,32 @@ import os
 import ssl
 import sys
 import re
-import subprocess # OpenSSL 명령 실행 상태 확인을 위해 추가
+import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, unquote_plus
 from datetime import datetime
 
 # =========================================================================
 # Python Standard Library Only HTTPS Server - 443 포트
-# 대용량 POST 요청을 수신하며, 안정적인 SSLContext를 사용하여 SSL 오류를 해결합니다.
+# 저장 경로: /home/kali/Downloads/received_transfer (또는 /root/Downloads/received_transfer)
 # =========================================================================
 
-# 파일 저장 경로 설정
-RECEIVE_DIR = os.path.join(os.path.expanduser('~'), "received_data")
+# -------------------------------------------------------------------------
+# 1. 파일 저장 경로 설정 (경로 업데이트)
+# -------------------------------------------------------------------------
+# Kali 사용자의 Downloads 폴더 안에 'received_transfer' 폴더를 생성하여 저장합니다.
+DOWNLOADS_DIR = os.path.join(os.path.expanduser('~'), "Downloads")
+RECEIVE_DIR = os.path.join(DOWNLOADS_DIR, "received_transfer")
+
 SERVER_ADDRESS = ('0.0.0.0', 443)
 
 # -------------------------------------------------------------------------
-# 1. SSL 인증서 생성 함수 (최종 안정화)
+# 2. SSL 인증서 생성 함수 (이전과 동일)
 # -------------------------------------------------------------------------
 def generate_ssl_certs():
     """
     Kali에서 서버 구동에 필요한 자체 서명 SSL 인증서(server.crt, server.key)를 생성합니다.
-    (기존 파일 삭제 및 단일 명령으로 키 불일치 오류를 해결합니다.)
+    (기존 파일 삭제 및 단일 명령으로 키 불일치 오류를 근본적으로 해결합니다.)
     """
     cert_file = 'server.crt'
     key_file = 'server.key'
@@ -36,7 +41,6 @@ def generate_ssl_certs():
     print("★ SSL 인증서 파일이 없어 OpenSSL 명령으로 자체 서명 인증서를 새로 생성합니다...")
     try:
         # 단일 명령으로 키와 인증서를 동시에 생성하여 일치성을 가장 강력하게 보장합니다.
-        # -nodes: 암호화되지 않은 개인 키 (Python에서 로드하기 위해 필수)
         cmd = (
             "openssl req -x509 -newkey rsa:4096 -keyout server.key "
             "-out server.crt -days 365 -nodes -subj '/CN=Kali_Listener/O=AITK_TEST'"
@@ -58,8 +62,7 @@ def generate_ssl_certs():
         sys.exit(1)
 
 # -------------------------------------------------------------------------
-# 2. 커스텀 HTTP 요청 핸들러
-# (변경 없음)
+# 3. 커스텀 HTTP 요청 핸들러
 # -------------------------------------------------------------------------
 class LargeDataHandler(BaseHTTPRequestHandler):
     """
@@ -104,6 +107,7 @@ class LargeDataHandler(BaseHTTPRequestHandler):
                     return
 
                 # 5. 파일 저장 디렉토리 확인 및 생성
+                # 변경된 경로를 사용합니다.
                 if not os.path.exists(RECEIVE_DIR):
                     os.makedirs(RECEIVE_DIR)
 
@@ -139,8 +143,7 @@ class LargeDataHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"No Data Received")
 
 # -------------------------------------------------------------------------
-# 3. 서버 실행
-# (변경 없음)
+# 4. 서버 실행
 # -------------------------------------------------------------------------
 def run_server():
     """HTTPS 서버를 시작하고 SSL Context를 적용합니다."""
@@ -159,7 +162,7 @@ def run_server():
         
         host, port = SERVER_ADDRESS
         print(f"★ HTTPS 서버 시작 중 (Host: {host}, Port: {port})...")
-        print(f"★ 파일 저장 경로: {RECEIVE_DIR}")
+        print(f"★ 파일 저장 경로: {RECEIVE_DIR}") # 변경된 경로 출력
         print("★ (참고: 443 포트는 권한 문제로 인해 sudo로 실행해야 합니다.)")
         
         httpd.serve_forever()

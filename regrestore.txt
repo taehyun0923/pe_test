@@ -1,0 +1,178 @@
+# 악성코드 레지스트리 복구 스크립트
+# 관리자 권한으로 PowerShell을 실행한 후 이 스크립트를 붙여넣으세요
+
+Write-Host "=" -NoNewline -ForegroundColor Cyan
+Write-Host ("=" * 59) -ForegroundColor Cyan
+Write-Host "악성코드 레지스트리 복구 시작" -ForegroundColor Yellow
+Write-Host "=" -NoNewline -ForegroundColor Cyan
+Write-Host ("=" * 59) -ForegroundColor Cyan
+Write-Host ""
+
+# 관리자 권한 확인
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Host "오류: 관리자 권한이 필요합니다!" -ForegroundColor Red
+    Write-Host "PowerShell을 관리자 권한으로 다시 실행하세요." -ForegroundColor Yellow
+    pause
+    exit
+}
+
+$successCount = 0
+$failCount = 0
+
+# 1. 시작프로그램에서 악성 항목 제거
+Write-Host "[1/6] 시작프로그램 악성 항목 제거 중..." -ForegroundColor Cyan
+try {
+    $runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+    if (Test-Path $runKey) {
+        Remove-ItemProperty -Path $runKey -Name "WindowsServiceHost" -ErrorAction SilentlyContinue
+        Write-Host "  ✓ 시작프로그램 악성 항목 제거 완료" -ForegroundColor Green
+        $successCount++
+    }
+} catch {
+    Write-Host "  ✗ 시작프로그램 복구 실패: $_" -ForegroundColor Red
+    $failCount++
+}
+
+# 2. Windows Defender 활성화
+Write-Host "[2/6] Windows Defender 활성화 중..." -ForegroundColor Cyan
+try {
+    $defenderKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
+    if (Test-Path $defenderKey) {
+        Remove-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -ErrorAction SilentlyContinue
+    }
+    # 서비스 시작
+    Set-Service -Name WinDefend -StartupType Automatic -ErrorAction SilentlyContinue
+    Start-Service -Name WinDefend -ErrorAction SilentlyContinue
+    Write-Host "  ✓ Windows Defender 활성화 완료" -ForegroundColor Green
+    $successCount++
+} catch {
+    Write-Host "  ✗ Windows Defender 복구 실패: $_" -ForegroundColor Red
+    $failCount++
+}
+
+# 3. UAC 활성화
+Write-Host "[3/6] UAC(사용자 계정 컨트롤) 활성화 중..." -ForegroundColor Cyan
+try {
+    $uacKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+    Set-ItemProperty -Path $uacKey -Name "EnableLUA" -Value 1 -Type DWord
+    Set-ItemProperty -Path $uacKey -Name "ConsentPromptBehaviorAdmin" -Value 5 -Type DWord
+    Write-Host "  ✓ UAC 활성화 완료" -ForegroundColor Green
+    $successCount++
+} catch {
+    Write-Host "  ✗ UAC 복구 실패: $_" -ForegroundColor Red
+    $failCount++
+}
+
+# 4. Windows Update 활성화
+Write-Host "[4/6] Windows Update 활성화 중..." -ForegroundColor Cyan
+try {
+    $updateKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+    if (Test-Path $updateKey) {
+        Remove-ItemProperty -Path $updateKey -Name "NoAutoUpdate" -ErrorAction SilentlyContinue
+    }
+    # 서비스 시작
+    Set-Service -Name wuauserv -StartupType Manual -ErrorAction SilentlyContinue
+    Start-Service -Name wuauserv -ErrorAction SilentlyContinue
+    Write-Host "  ✓ Windows Update 활성화 완료" -ForegroundColor Green
+    $successCount++
+} catch {
+    Write-Host "  ✗ Windows Update 복구 실패: $_" -ForegroundColor Red
+    $failCount++
+}
+
+# 5. 방화벽 활성화
+Write-Host "[5/6] Windows 방화벽 활성화 중..." -ForegroundColor Cyan
+try {
+    $fwKey = "HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\StandardProfile"
+    Set-ItemProperty -Path $fwKey -Name "EnableFirewall" -Value 1 -Type DWord
+    # 모든 프로필 활성화
+    Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True -ErrorAction SilentlyContinue
+    Write-Host "  ✓ Windows 방화벽 활성화 완료" -ForegroundColor Green
+    $successCount++
+} catch {
+    Write-Host "  ✗ 방화벽 복구 실패: $_" -ForegroundColor Red
+    $failCount++
+}
+
+# 6. 숨김 파일 표시 설정 복구
+Write-Host "[6/6] 숨김 파일 표시 설정 복구 중..." -ForegroundColor Cyan
+try {
+    $explorerKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+    Set-ItemProperty -Path $explorerKey -Name "Hidden" -Value 1 -Type DWord
+    Write-Host "  ✓ 숨김 파일 표시 설정 복구 완료" -ForegroundColor Green
+    $successCount++
+} catch {
+    Write-Host "  ✗ 숨김 파일 설정 복구 실패: $_" -ForegroundColor Red
+    $failCount++
+}
+
+Write-Host ""
+Write-Host "=" -NoNewline -ForegroundColor Cyan
+Write-Host ("=" * 59) -ForegroundColor Cyan
+
+# 악성 파일 검색 및 삭제
+Write-Host "악성 파일 검색 중..." -ForegroundColor Yellow
+Write-Host ""
+
+$suspiciousPaths = @()
+$searchLocations = @(
+    "$env:APPDATA\Microsoft\Windows Defender\Logs",
+    "C:\ProgramData\Logs\SystemCache"
+)
+
+foreach ($location in $searchLocations) {
+    if (Test-Path $location) {
+        $files = Get-ChildItem -Path $location -Filter "System_Report_*" -Recurse -ErrorAction SilentlyContinue
+        $suspiciousPaths += $files
+    }
+}
+
+if ($suspiciousPaths.Count -gt 0) {
+    Write-Host "발견된 의심 파일:" -ForegroundColor Yellow
+    foreach ($file in $suspiciousPaths) {
+        Write-Host "  - $($file.FullName)" -ForegroundColor White
+    }
+    Write-Host ""
+    
+    $response = Read-Host "이 파일들을 삭제하시겠습니까? (Y/N)"
+    if ($response -eq 'Y' -or $response -eq 'y') {
+        foreach ($file in $suspiciousPaths) {
+            try {
+                Remove-Item -Path $file.FullName -Force
+                Write-Host "  ✓ 삭제됨: $($file.FullName)" -ForegroundColor Green
+            } catch {
+                Write-Host "  ✗ 삭제 실패: $($file.FullName)" -ForegroundColor Red
+            }
+        }
+    }
+} else {
+    Write-Host "  의심 파일이 발견되지 않았습니다." -ForegroundColor Green
+}
+
+Write-Host ""
+Write-Host "=" -NoNewline -ForegroundColor Cyan
+Write-Host ("=" * 59) -ForegroundColor Cyan
+Write-Host "복구 완료 요약" -ForegroundColor Yellow
+Write-Host "  성공: $successCount 항목" -ForegroundColor Green
+Write-Host "  실패: $failCount 항목" -ForegroundColor $(if ($failCount -gt 0) { "Red" } else { "Green" })
+Write-Host "=" -NoNewline -ForegroundColor Cyan
+Write-Host ("=" * 59) -ForegroundColor Cyan
+Write-Host ""
+
+if ($failCount -eq 0) {
+    Write-Host "모든 복구 작업이 완료되었습니다!" -ForegroundColor Green
+    Write-Host "컴퓨터를 재시작하여 변경사항을 적용하세요." -ForegroundColor Yellow
+} else {
+    Write-Host "일부 항목 복구에 실패했습니다." -ForegroundColor Yellow
+    Write-Host "수동 복구가 필요할 수 있습니다." -ForegroundColor Yellow
+}
+
+Write-Host ""
+Write-Host "추가 권장 조치:" -ForegroundColor Cyan
+Write-Host "  1. Windows Defender 전체 검사 실행" -ForegroundColor White
+Write-Host "  2. 모든 계정 비밀번호 변경" -ForegroundColor White
+Write-Host "  3. 시스템 재시작" -ForegroundColor White
+Write-Host ""
+
+pause

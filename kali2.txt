@@ -1,17 +1,19 @@
 import os
 import ssl
-from flask import Flask, request
+import sys
+import re
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import parse_qs, unquote_plus
 from datetime import datetime
 
 # =========================================================================
-# Flask HTTPS 서버 - 443 포트
+# Python Standard Library Only HTTPS Server - 443 포트
 # Windows PE 파일로부터 15MB 이상의 대용량 POST 요청을 수신합니다.
 # =========================================================================
 
-app = Flask(__name__)
-
 # 파일 저장 경로 설정
 RECEIVE_DIR = os.path.join(os.path.expanduser('~'), "received_data")
+SERVER_ADDRESS = ('0.0.0.0', 443)
 
 # -------------------------------------------------------------------------
 # 1. SSL 인증서 생성 함수 (자동 생성)
@@ -44,58 +46,120 @@ def generate_ssl_certs():
             
     except Exception as e:
         print(f"❌ SSL 인증서 생성 실패. OpenSSL이 설치되어 있는지 확인하세요. 오류: {e}")
-        exit(1)
+        sys.exit(1)
 
 # -------------------------------------------------------------------------
-# 2. 서버 라우팅 및 처리 로직
+# 2. 커스텀 HTTP 요청 핸들러
 # -------------------------------------------------------------------------
-@app.route('/upload', methods=['POST'])
-def upload_data():
-    """POST 요청으로부터 데이터 수신 및 파일 저장"""
-    try:
-        # 1. 파일 저장 디렉토리 확인 및 생성
-        if not os.path.exists(RECEIVE_DIR):
-            os.makedirs(RECEIVE_DIR)
-        
-        # 2. POST 요청 데이터에서 'filename'과 'content' 추출
-        # Content-Type: application/x-www-form-urlencoded 처리
-        filename = request.form.get('filename', 'received_log_default.txt')
-        content = request.form.get('content', '')
-        
-        if not content:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ 데이터가 비어 있습니다.")
-            return 'No Content Received', 204
+class LargeDataHandler(BaseHTTPRequestHandler):
+    """
+    POST 요청을 처리하고, 대용량 form-urlencoded 데이터를 파싱하여 저장합니다.
+    """
+    def _set_headers(self, status_code=200, message='OK'):
+        self.send_response(status_code, message)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
 
-        # 3. 파일 저장
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        save_path = os.path.join(RECEIVE_DIR, f"received_{timestamp}_{filename}")
-        
-        # 텍스트 모드로 저장
-        with open(save_path, 'w', encoding='utf-8', errors='ignore') as f:
-            f.write(content)
+    def do_POST(self):
+        # 1. 경로 확인
+        if self.path != '/upload':
+            self._set_headers(404, 'Not Found')
+            self.wfile.write(b"404 Not Found")
+            return
 
-        # 4. 결과 출력
-        file_size_bytes = os.path.getsize(save_path)
-        file_size_mib = file_size_bytes / (1024 * 1024)
-        
-        print("-" * 50)
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ 대용량 파일 수신 성공")
-        print(f"  > 파일명: {filename}")
-        print(f"  > 저장 경로: {save_path}")
-        print(f"  > 크기: {file_size_mib:.2f} MiB ({file_size_bytes:,} bytes)")
-        print("-" * 50)
-        
-        return 'Data Received Successfully', 200
+        # 2. Content-Length 헤더로 데이터 크기 확인
+        try:
+            content_length = int(self.headers['Content-Length'])
+        except (TypeError, ValueError):
+            self._set_headers(400, 'Bad Request')
+            self.wfile.write(b"Missing or Invalid Content-Length")
+            return
 
-    except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 수신 처리 중 오류 발생: {e}")
-        return 'Internal Server Error', 500
+        if content_length > 0:
+            try:
+                # 3. 대용량 데이터 읽기
+                post_data_raw = self.rfile.read(content_length)
+                
+                # 4. form-urlencoded 데이터 파싱
+                # post_data_raw를 디코딩하고 parse_qs로 딕셔너리 형태로 파싱
+                post_data_str = post_data_raw.decode('utf-8')
+                parsed_data = parse_qs(post_data_str)
+                
+                # parse_qs의 결과는 리스트 형태이므로 첫 번째 요소를 추출
+                # 또한, unquote_plus를 사용하여 URL 인코딩을 완전히 해제합니다.
+                filename = unquote_plus(parsed_data.get('filename', ['received_log_default.txt'])[0])
+                content = unquote_plus(parsed_data.get('content', [''])[0])
+                
+                if not content:
+                    self._set_headers(204, 'No Content')
+                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ 데이터가 비어 있습니다.")
+                    return
+
+                # 5. 파일 저장 디렉토리 확인 및 생성
+                if not os.path.exists(RECEIVE_DIR):
+                    os.makedirs(RECEIVE_DIR)
+
+                # 6. 파일 저장 (안전한 파일명 처리)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                safe_filename = re.sub(r'[^\w\.\-]', '_', filename)
+                save_path = os.path.join(RECEIVE_DIR, f"received_{timestamp}_{safe_filename}")
+                
+                with open(save_path, 'w', encoding='utf-8', errors='ignore') as f:
+                    f.write(content)
+
+                # 7. 결과 출력 및 응답
+                file_size_bytes = os.path.getsize(save_path)
+                file_size_mib = file_size_bytes / (1024 * 1024)
+                
+                self._set_headers(200, 'Success')
+                self.wfile.write(b"Data Received Successfully")
+                
+                print("-" * 50)
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ 대용량 파일 수신 성공")
+                print(f"  > 파일명: {safe_filename}")
+                print(f"  > 저장 경로: {save_path}")
+                print(f"  > 크기: {file_size_mib:.2f} MiB ({file_size_bytes:,} bytes)")
+                print("-" * 50)
+
+            except Exception as e:
+                self._set_headers(500, 'Internal Error')
+                self.wfile.write(b"Internal Server Error")
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 수신 처리 중 오류 발생: {e}")
+                
+        else:
+            self._set_headers(400, 'Bad Request')
+            self.wfile.write(b"No Data Received")
 
 # -------------------------------------------------------------------------
 # 3. 서버 실행
 # -------------------------------------------------------------------------
-if __name__ == '__main__':
+def run_server():
+    """HTTPS 서버를 시작하고 SSL Context를 적용합니다."""
     cert_file, key_file = generate_ssl_certs()
-    print(f"★ HTTPS 서버 시작 중 (443 포트)... 저장 경로: {RECEIVE_DIR}")
-    # 443 포트는 권한 문제로 인해 sudo로 실행해야 함
-    app.run(host='0.0.0.0', port=443, ssl_context=(cert_file, key_file))
+    
+    try:
+        # HTTP 서버 인스턴스 생성
+        httpd = HTTPServer(SERVER_ADDRESS, LargeDataHandler)
+        
+        # SSL Context 적용
+        httpd.socket = ssl.wrap_socket(
+            httpd.socket,
+            keyfile=key_file,
+            certfile=cert_file,
+            server_side=True
+        )
+        
+        host, port = SERVER_ADDRESS
+        print(f"★ HTTPS 서버 시작 중 (Host: {host}, Port: {port})...")
+        print(f"★ 파일 저장 경로: {RECEIVE_DIR}")
+        print("★ (참고: 443 포트는 권한 문제로 인해 sudo로 실행해야 합니다.)")
+        
+        httpd.serve_forever()
+
+    except PermissionError:
+        print("\n❌ 권한 오류: 443 포트는 root 권한이 필요합니다. 'sudo python3 [파일 이름].py'로 실행하세요.")
+    except Exception as e:
+        print(f"\n❌ 서버 실행 중 치명적인 오류 발생: {e}")
+
+if __name__ == '__main__':
+    run_server()

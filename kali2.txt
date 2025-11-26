@@ -1,7 +1,6 @@
 import os
 import ssl
 import sys
-import re
 import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, unquote_plus
@@ -9,168 +8,124 @@ from datetime import datetime
 
 # =========================================================================
 # Python Standard Library Only HTTPS Server - 443 포트
-# 저장 경로: /home/kali/Downloads/received_transfer (또는 /root/Downloads/received_transfer)
+# Flask 없이 기본 모듈만 사용하여 대용량 데이터를 수신합니다.
 # =========================================================================
 
-# -------------------------------------------------------------------------
-# 1. 파일 저장 경로 설정 (경로 업데이트)
-# -------------------------------------------------------------------------
-# Kali 사용자의 Downloads 폴더 안에 'received_transfer' 폴더를 생성하여 저장합니다.
-DOWNLOADS_DIR = os.path.join(os.path.expanduser('~'), "Downloads")
-RECEIVE_DIR = os.path.join(DOWNLOADS_DIR, "received_transfer")
+# 파일 저장 경로 설정 (현재 사용자의 Downloads/received_data 폴더)
+# sudo로 실행해도 실제 사용자의 폴더를 찾도록 시도하거나 /root/Downloads에 저장
+try:
+    USER_HOME = os.path.expanduser(f"~{os.getenv('SUDO_USER')}") if os.getenv('SUDO_USER') else os.path.expanduser('~')
+except:
+    USER_HOME = os.path.expanduser('~')
 
+RECEIVE_DIR = os.path.join(USER_HOME, "Downloads", "received_data")
 SERVER_ADDRESS = ('0.0.0.0', 443)
 
 # -------------------------------------------------------------------------
-# 2. SSL 인증서 생성 함수 (이전과 동일)
+# 1. SSL 인증서 생성 함수
 # -------------------------------------------------------------------------
 def generate_ssl_certs():
-    """
-    Kali에서 서버 구동에 필요한 자체 서명 SSL 인증서(server.crt, server.key)를 생성합니다.
-    (기존 파일 삭제 및 단일 명령으로 키 불일치 오류를 근본적으로 해결합니다.)
-    """
     cert_file = 'server.crt'
     key_file = 'server.key'
     
-    # 🚨🚨🚨 CRITICAL: 기존 파일이 있다면 삭제하여 불일치 오류를 방지합니다. 🚨🚨🚨
-    if os.path.exists(cert_file):
-        os.remove(cert_file)
-    if os.path.exists(key_file):
-        os.remove(key_file)
+    # 기존 파일 삭제 (충돌 방지)
+    if os.path.exists(cert_file): os.remove(cert_file)
+    if os.path.exists(key_file): os.remove(key_file)
         
-    print("★ SSL 인증서 파일이 없어 OpenSSL 명령으로 자체 서명 인증서를 새로 생성합니다...")
+    print("★ SSL 인증서 생성 중 (OpenSSL)...")
     try:
-        # 단일 명령으로 키와 인증서를 동시에 생성하여 일치성을 가장 강력하게 보장합니다.
-        cmd = (
-            "openssl req -x509 -newkey rsa:4096 -keyout server.key "
-            "-out server.crt -days 365 -nodes -subj '/CN=Kali_Listener/O=AITK_TEST'"
-        )
+        cmd = "openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes -subj '/CN=Kali_Listener'"
+        subprocess.run(cmd, shell=True, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        # OpenSSL 명령 실행
-        result = subprocess.run(cmd, shell=True, check=False, capture_output=True, text=True)
-
         if os.path.exists(cert_file) and os.path.exists(key_file):
-            print("★ SSL 인증서 생성 성공: server.crt, server.key")
             return cert_file, key_file
         else:
-            # OpenSSL 실행에 실패했지만 에러 코드를 반환하지 않았을 경우
-            print(f"❌ OpenSSL 실행 실패. Stderr: {result.stderr}")
-            raise FileNotFoundError("OpenSSL 명령 실행 후에도 파일이 생성되지 않았습니다.")
-            
+            print("❌ OpenSSL 인증서 생성 실패. openssl이 설치되어 있는지 확인하세요.")
+            sys.exit(1)
     except Exception as e:
-        print(f"❌ SSL 인증서 생성 실패. OpenSSL이 설치되어 있는지 확인하세요. 오류: {e}")
+        print(f"❌ 인증서 생성 중 오류: {e}")
         sys.exit(1)
 
 # -------------------------------------------------------------------------
-# 3. 커스텀 HTTP 요청 핸들러
+# 2. HTTP 요청 핸들러
 # -------------------------------------------------------------------------
 class LargeDataHandler(BaseHTTPRequestHandler):
-    """
-    POST 요청을 처리하고, 대용량 form-urlencoded 데이터를 파싱하여 저장합니다.
-    """
-    def _set_headers(self, status_code=200, message='OK'):
-        self.send_response(status_code, message)
+    def _set_headers(self, status_code=200):
+        self.send_response(status_code)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
 
     def do_POST(self):
-        # 1. 경로 확인
+        # /upload 경로만 허용
         if self.path != '/upload':
-            self._set_headers(404, 'Not Found')
-            self.wfile.write(b"404 Not Found")
+            self._set_headers(404)
             return
 
-        # 2. Content-Length 헤더로 데이터 크기 확인
         try:
-            content_length = int(self.headers['Content-Length'])
-        except (TypeError, ValueError):
-            self._set_headers(400, 'Bad Request')
-            self.wfile.write(b"Missing or Invalid Content-Length")
-            return
+            # 데이터 크기 확인
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self._set_headers(400)
+                return
 
-        if content_length > 0:
-            try:
-                # 3. 대용량 데이터 읽기
-                post_data_raw = self.rfile.read(content_length)
+            # 데이터 읽기 (대용량)
+            post_data = self.rfile.read(content_length)
+            
+            # 데이터 파싱 (URL Decoding)
+            # errors='ignore'로 인코딩 오류 방지
+            post_data_str = post_data.decode('utf-8', errors='ignore')
+            parsed_data = parse_qs(post_data_str)
+            
+            filename = parsed_data.get('filename', ['received_log.txt'])[0]
+            content = parsed_data.get('content', [''])[0]
+            
+            # 저장
+            if not os.path.exists(RECEIVE_DIR):
+                os.makedirs(RECEIVE_DIR)
                 
-                # 4. form-urlencoded 데이터 파싱
-                post_data_str = post_data_raw.decode('utf-8')
-                parsed_data = parse_qs(post_data_str)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            save_path = os.path.join(RECEIVE_DIR, f"received_{timestamp}_{filename}")
+            
+            with open(save_path, 'w', encoding='utf-8') as f:
+                f.write(content)
                 
-                # parse_qs의 결과는 리스트 형태이므로 첫 번째 요소를 추출하고 URL 인코딩 해제
-                filename = unquote_plus(parsed_data.get('filename', ['received_log_default.txt'])[0])
-                content = unquote_plus(parsed_data.get('content', [''])[0])
-                
-                if not content:
-                    self._set_headers(204, 'No Content')
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ 데이터가 비어 있습니다.")
-                    return
+            file_size = os.path.getsize(save_path) / (1024 * 1024)
+            print(f"\n[{timestamp}] ✅ 파일 수신 완료!")
+            print(f" - 경로: {save_path}")
+            print(f" - 크기: {file_size:.2f} MB")
+            
+            self._set_headers(200)
+            self.wfile.write(b"Upload Success")
+            
+        except Exception as e:
+            print(f"❌ 수신 중 오류 발생: {e}")
+            self._set_headers(500)
 
-                # 5. 파일 저장 디렉토리 확인 및 생성
-                # 변경된 경로를 사용합니다.
-                if not os.path.exists(RECEIVE_DIR):
-                    os.makedirs(RECEIVE_DIR)
-
-                # 6. 파일 저장 (안전한 파일명 처리)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                safe_filename = re.sub(r'[^\w\.\-]', '_', filename)
-                save_path = os.path.join(RECEIVE_DIR, f"received_{timestamp}_{safe_filename}")
-                
-                with open(save_path, 'w', encoding='utf-8', errors='ignore') as f:
-                    f.write(content)
-
-                # 7. 결과 출력 및 응답
-                file_size_bytes = os.path.getsize(save_path)
-                file_size_mib = file_size_bytes / (1024 * 1024)
-                
-                self._set_headers(200, 'Success')
-                self.wfile.write(b"Data Received Successfully")
-                
-                print("-" * 50)
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ 대용량 파일 수신 성공")
-                print(f"  > 파일명: {safe_filename}")
-                print(f"  > 저장 경로: {save_path}")
-                print(f"  > 크기: {file_size_mib:.2f} MiB ({file_size_bytes:,} bytes)")
-                print("-" * 50)
-
-            except Exception as e:
-                self._set_headers(500, 'Internal Error')
-                self.wfile.write(b"Internal Server Error")
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 수신 처리 중 오류 발생: {e}")
-                
-        else:
-            self._set_headers(400, 'Bad Request')
-            self.wfile.write(b"No Data Received")
+    # 로그 출력 억제 (화면 깔끔하게)
+    def log_message(self, format, *args):
+        return
 
 # -------------------------------------------------------------------------
-# 4. 서버 실행
+# 3. 서버 실행
 # -------------------------------------------------------------------------
 def run_server():
-    """HTTPS 서버를 시작하고 SSL Context를 적용합니다."""
     cert_file, key_file = generate_ssl_certs()
     
+    httpd = HTTPServer(SERVER_ADDRESS, LargeDataHandler)
+    
+    # SSL Context 설정 (최신 방식)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(certfile=cert_file, keyfile=key_file)
+    httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+    
+    print(f"\n★ HTTPS 서버 시작됨 (Port 443)")
+    print(f"★ 저장 경로: {RECEIVE_DIR}")
+    print("★ 대기 중... (Ctrl+C로 종료)")
+    
     try:
-        # HTTP 서버 인스턴스 생성
-        httpd = HTTPServer(SERVER_ADDRESS, LargeDataHandler)
-        
-        # SSL Context 생성 및 인증서 로드
-        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        context.load_cert_chain(certfile=cert_file, keyfile=key_file)
-        
-        # Context 객체의 wrap_socket 메서드를 사용하여 소켓 래핑
-        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
-        
-        host, port = SERVER_ADDRESS
-        print(f"★ HTTPS 서버 시작 중 (Host: {host}, Port: {port})...")
-        print(f"★ 파일 저장 경로: {RECEIVE_DIR}") # 변경된 경로 출력
-        print("★ (참고: 443 포트는 권한 문제로 인해 sudo로 실행해야 합니다.)")
-        
         httpd.serve_forever()
-
-    except PermissionError:
-        print("\n❌ 권한 오류: 443 포트는 root 권한이 필요합니다. 'sudo python3 [파일 이름].py'로 실행하세요.")
-    except Exception as e:
-        print(f"\n❌ 서버 실행 중 치명적인 오류 발생: {e}")
+    except KeyboardInterrupt:
+        print("\n서버 종료.")
 
 if __name__ == '__main__':
     run_server()

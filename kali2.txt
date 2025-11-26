@@ -2,13 +2,14 @@ import os
 import ssl
 import sys
 import re
+import subprocess # OpenSSL 명령 실행 상태 확인을 위해 추가
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, unquote_plus
 from datetime import datetime
 
 # =========================================================================
 # Python Standard Library Only HTTPS Server - 443 포트
-# 대용량 POST 요청을 수신하며, 안정적인 SSL Context를 사용하여 SSL 오류를 해결합니다.
+# 대용량 POST 요청을 수신하며, 안정적인 SSLContext를 사용하여 SSL 오류를 해결합니다.
 # =========================================================================
 
 # 파일 저장 경로 설정
@@ -16,41 +17,40 @@ RECEIVE_DIR = os.path.join(os.path.expanduser('~'), "received_data")
 SERVER_ADDRESS = ('0.0.0.0', 443)
 
 # -------------------------------------------------------------------------
-# 1. SSL 인증서 생성 함수 (안정화)
+# 1. SSL 인증서 생성 함수 (최종 안정화)
 # -------------------------------------------------------------------------
 def generate_ssl_certs():
     """
     Kali에서 서버 구동에 필요한 자체 서명 SSL 인증서(server.crt, server.key)를 생성합니다.
-    (키/인증서 불일치 오류 방지 로직 포함)
+    (기존 파일 삭제 및 단일 명령으로 키 불일치 오류를 해결합니다.)
     """
     cert_file = 'server.crt'
     key_file = 'server.key'
     
-    # 기존 파일이 있다면 삭제하여 불일치 오류를 방지합니다.
+    # 🚨🚨🚨 CRITICAL: 기존 파일이 있다면 삭제하여 불일치 오류를 방지합니다. 🚨🚨🚨
     if os.path.exists(cert_file):
         os.remove(cert_file)
     if os.path.exists(key_file):
         os.remove(key_file)
         
-    print("★ SSL 인증서 파일이 없어 OpenSSL 명령으로 '안정화된 2단계' 자체 서명 인증서를 생성합니다...")
+    print("★ SSL 인증서 파일이 없어 OpenSSL 명령으로 자체 서명 인증서를 새로 생성합니다...")
     try:
-        # Step 1: 암호화되지 않은 개인 키 생성 (-nodes)
-        key_cmd = (
-            "openssl genrsa -out server.key 4096"
+        # 단일 명령으로 키와 인증서를 동시에 생성하여 일치성을 가장 강력하게 보장합니다.
+        # -nodes: 암호화되지 않은 개인 키 (Python에서 로드하기 위해 필수)
+        cmd = (
+            "openssl req -x509 -newkey rsa:4096 -keyout server.key "
+            "-out server.crt -days 365 -nodes -subj '/CN=Kali_Listener/O=AITK_TEST'"
         )
-        os.system(key_cmd)
-
-        # Step 2: 생성된 키를 사용하여 인증서 요청서(CSR)를 만들고 자체 서명하여 인증서(.crt) 생성
-        cert_cmd = (
-            "openssl req -new -x509 -key server.key -out server.crt "
-            "-days 365 -subj '/CN=10.44.44.44/O=AITK_TEST'"
-        )
-        os.system(cert_cmd)
         
+        # OpenSSL 명령 실행
+        result = subprocess.run(cmd, shell=True, check=False, capture_output=True, text=True)
+
         if os.path.exists(cert_file) and os.path.exists(key_file):
             print("★ SSL 인증서 생성 성공: server.crt, server.key")
             return cert_file, key_file
         else:
+            # OpenSSL 실행에 실패했지만 에러 코드를 반환하지 않았을 경우
+            print(f"❌ OpenSSL 실행 실패. Stderr: {result.stderr}")
             raise FileNotFoundError("OpenSSL 명령 실행 후에도 파일이 생성되지 않았습니다.")
             
     except Exception as e:
@@ -59,6 +59,7 @@ def generate_ssl_certs():
 
 # -------------------------------------------------------------------------
 # 2. 커스텀 HTTP 요청 핸들러
+# (변경 없음)
 # -------------------------------------------------------------------------
 class LargeDataHandler(BaseHTTPRequestHandler):
     """
@@ -139,6 +140,7 @@ class LargeDataHandler(BaseHTTPRequestHandler):
 
 # -------------------------------------------------------------------------
 # 3. 서버 실행
+# (변경 없음)
 # -------------------------------------------------------------------------
 def run_server():
     """HTTPS 서버를 시작하고 SSL Context를 적용합니다."""

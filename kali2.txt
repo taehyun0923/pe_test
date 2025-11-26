@@ -8,7 +8,7 @@ from datetime import datetime
 
 # =========================================================================
 # Python Standard Library Only HTTPS Server - 443 포트
-# 대용량 POST 요청을 수신하며, SSLContext를 사용하여 SSL 오류를 해결합니다.
+# 대용량 POST 요청을 수신하며, 안정적인 SSL Context를 사용하여 SSL 오류를 해결합니다.
 # =========================================================================
 
 # 파일 저장 경로 설정
@@ -16,27 +16,36 @@ RECEIVE_DIR = os.path.join(os.path.expanduser('~'), "received_data")
 SERVER_ADDRESS = ('0.0.0.0', 443)
 
 # -------------------------------------------------------------------------
-# 1. SSL 인증서 생성 함수 (자동 생성)
+# 1. SSL 인증서 생성 함수 (안정화)
 # -------------------------------------------------------------------------
 def generate_ssl_certs():
     """
     Kali에서 서버 구동에 필요한 자체 서명 SSL 인증서(server.crt, server.key)를 생성합니다.
+    (키/인증서 불일치 오류 방지 로직 포함)
     """
     cert_file = 'server.crt'
     key_file = 'server.key'
     
-    if os.path.exists(cert_file) and os.path.exists(key_file):
-        print("★ 기존 SSL 인증서 파일(server.crt, server.key) 발견. 재사용합니다.")
-        return cert_file, key_file
+    # 기존 파일이 있다면 삭제하여 불일치 오류를 방지합니다.
+    if os.path.exists(cert_file):
+        os.remove(cert_file)
+    if os.path.exists(key_file):
+        os.remove(key_file)
         
-    print("★ SSL 인증서 파일이 없어 OpenSSL 명령으로 자체 서명 인증서를 생성합니다...")
+    print("★ SSL 인증서 파일이 없어 OpenSSL 명령으로 '안정화된 2단계' 자체 서명 인증서를 생성합니다...")
     try:
-        # 인증서 생성 명령: RSA 4096비트, 365일 유효
-        cmd = (
-            "openssl req -x509 -newkey rsa:4096 -keyout server.key "
-            "-out server.crt -days 365 -nodes -subj '/CN=10.44.44.44/O=AITK_TEST'"
+        # Step 1: 암호화되지 않은 개인 키 생성 (-nodes)
+        key_cmd = (
+            "openssl genrsa -out server.key 4096"
         )
-        os.system(cmd)
+        os.system(key_cmd)
+
+        # Step 2: 생성된 키를 사용하여 인증서 요청서(CSR)를 만들고 자체 서명하여 인증서(.crt) 생성
+        cert_cmd = (
+            "openssl req -new -x509 -key server.key -out server.crt "
+            "-days 365 -subj '/CN=10.44.44.44/O=AITK_TEST'"
+        )
+        os.system(cert_cmd)
         
         if os.path.exists(cert_file) and os.path.exists(key_file):
             print("★ SSL 인증서 생성 성공: server.crt, server.key")
@@ -78,7 +87,6 @@ class LargeDataHandler(BaseHTTPRequestHandler):
         if content_length > 0:
             try:
                 # 3. 대용량 데이터 읽기
-                # BaseHTTPRequestHandler의 rfile.read는 Content-Length만큼 읽어옵니다.
                 post_data_raw = self.rfile.read(content_length)
                 
                 # 4. form-urlencoded 데이터 파싱
@@ -140,7 +148,7 @@ def run_server():
         # HTTP 서버 인스턴스 생성
         httpd = HTTPServer(SERVER_ADDRESS, LargeDataHandler)
         
-        # ★★★ 오류 수정 부분: SSL Context 생성 및 적용 ★★★
+        # SSL Context 생성 및 인증서 로드
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         context.load_cert_chain(certfile=cert_file, keyfile=key_file)
         

@@ -1,0 +1,101 @@
+import os
+import ssl
+from flask import Flask, request
+from datetime import datetime
+
+# =========================================================================
+# Flask HTTPS 서버 - 443 포트
+# Windows PE 파일로부터 15MB 이상의 대용량 POST 요청을 수신합니다.
+# =========================================================================
+
+app = Flask(__name__)
+
+# 파일 저장 경로 설정
+RECEIVE_DIR = os.path.join(os.path.expanduser('~'), "received_data")
+
+# -------------------------------------------------------------------------
+# 1. SSL 인증서 생성 함수 (자동 생성)
+# -------------------------------------------------------------------------
+def generate_ssl_certs():
+    """
+    Kali에서 서버 구동에 필요한 자체 서명 SSL 인증서(server.crt, server.key)를 생성합니다.
+    """
+    cert_file = 'server.crt'
+    key_file = 'server.key'
+    
+    if os.path.exists(cert_file) and os.path.exists(key_file):
+        print("★ 기존 SSL 인증서 파일(server.crt, server.key) 발견. 재사용합니다.")
+        return cert_file, key_file
+        
+    print("★ SSL 인증서 파일이 없어 OpenSSL 명령으로 자체 서명 인증서를 생성합니다...")
+    try:
+        # 인증서 생성 명령: RSA 4096비트, 365일 유효
+        cmd = (
+            "openssl req -x509 -newkey rsa:4096 -keyout server.key "
+            "-out server.crt -days 365 -nodes -subj '/CN=10.44.44.44/O=AITK_TEST'"
+        )
+        os.system(cmd)
+        
+        if os.path.exists(cert_file) and os.path.exists(key_file):
+            print("★ SSL 인증서 생성 성공: server.crt, server.key")
+            return cert_file, key_file
+        else:
+            raise FileNotFoundError("OpenSSL 명령 실행 후에도 파일이 생성되지 않았습니다.")
+            
+    except Exception as e:
+        print(f"❌ SSL 인증서 생성 실패. OpenSSL이 설치되어 있는지 확인하세요. 오류: {e}")
+        exit(1)
+
+# -------------------------------------------------------------------------
+# 2. 서버 라우팅 및 처리 로직
+# -------------------------------------------------------------------------
+@app.route('/upload', methods=['POST'])
+def upload_data():
+    """POST 요청으로부터 데이터 수신 및 파일 저장"""
+    try:
+        # 1. 파일 저장 디렉토리 확인 및 생성
+        if not os.path.exists(RECEIVE_DIR):
+            os.makedirs(RECEIVE_DIR)
+        
+        # 2. POST 요청 데이터에서 'filename'과 'content' 추출
+        # Content-Type: application/x-www-form-urlencoded 처리
+        filename = request.form.get('filename', 'received_log_default.txt')
+        content = request.form.get('content', '')
+        
+        if not content:
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ⚠️ 데이터가 비어 있습니다.")
+            return 'No Content Received', 204
+
+        # 3. 파일 저장
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        save_path = os.path.join(RECEIVE_DIR, f"received_{timestamp}_{filename}")
+        
+        # 텍스트 모드로 저장
+        with open(save_path, 'w', encoding='utf-8', errors='ignore') as f:
+            f.write(content)
+
+        # 4. 결과 출력
+        file_size_bytes = os.path.getsize(save_path)
+        file_size_mib = file_size_bytes / (1024 * 1024)
+        
+        print("-" * 50)
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✅ 대용량 파일 수신 성공")
+        print(f"  > 파일명: {filename}")
+        print(f"  > 저장 경로: {save_path}")
+        print(f"  > 크기: {file_size_mib:.2f} MiB ({file_size_bytes:,} bytes)")
+        print("-" * 50)
+        
+        return 'Data Received Successfully', 200
+
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ❌ 수신 처리 중 오류 발생: {e}")
+        return 'Internal Server Error', 500
+
+# -------------------------------------------------------------------------
+# 3. 서버 실행
+# -------------------------------------------------------------------------
+if __name__ == '__main__':
+    cert_file, key_file = generate_ssl_certs()
+    print(f"★ HTTPS 서버 시작 중 (443 포트)... 저장 경로: {RECEIVE_DIR}")
+    # 443 포트는 권한 문제로 인해 sudo로 실행해야 함
+    app.run(host='0.0.0.0', port=443, ssl_context=(cert_file, key_file))

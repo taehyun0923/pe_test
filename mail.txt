@@ -1,0 +1,17 @@
+# 방법 1: 간단한 버전 (제목과 본문이 짧을 때)
+swaks --to "$TARGET_EMAIL" \
+--from "$SENDER_EMAIL" \
+--server "$SMTP_SERVER" \
+--port "$SMTP_PORT" \
+--header "Subject: [필수확인] 2025년 상반기 실적 보고서_최종" \
+--body "안녕하세요,
+
+2025년 상반기 실적 보고서를 첨부 파일로 송부드립니다.
+금일 오후 5시까지 검토 후 회신 부탁드립니다.
+
+첨부: 2025년_상반기_실적보고서_최종.xlsm
+
+감사합니다.
+
+경영지원팀 드림" \
+--attach @"$ATTACHMENT_PATH"
